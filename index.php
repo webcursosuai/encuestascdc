@@ -1,5 +1,5 @@
 <?php
-require_once (dirname(dirname(dirname(dirname(__FILE__)))) . '/config.php');
+require_once (dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once ('forms/questionnaire_form.php');
 
 require_login();
@@ -12,7 +12,7 @@ $qid = optional_param('qid', 0, PARAM_INT);
 $layout = optional_param('layout', null, PARAM_ALPHA);
 
 $PAGE->set_context($context);
-$PAGE->set_url('/lib/tests/other/cdcreport.php');
+$PAGE->set_url('/local/encuestascdc/index.php');
 $PAGE->set_heading('Reporte encuesta');
 $PAGE->set_pagelayout('print');
 
@@ -20,7 +20,7 @@ echo $OUTPUT->header();
 
 if($qid == 0 || $courseid == 0) {
 	echo $OUTPUT->heading('Reporte de encuestas UAI Corporate');
-    $form = new local_uaio_questionnaire_form(null, array('course'=>$courseid), 'GET');
+	$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid), 'GET');
     $form->display();
     echo $OUTPUT->footer();
     die();

@@ -37,7 +37,7 @@ h1 {
 	display: none;
 }
 .uai-corporate-logo {
-    background-image: url('../img/logo-uai-corporate-no-transparente.png');
+    background-image: url('img/logo-uai-corporate-no-transparente.png');
     background-repeat: no-repeat;
     background-size: contain;
     width: 200px;

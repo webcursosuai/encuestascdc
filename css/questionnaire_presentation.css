@@ -15,7 +15,7 @@ html, body, .main, .tabs, .tabbed-content { float: none; }
   }
 }
 .uai-corporate-logo {
-    background-image: url('../img/logo-uai-corporate.png');
+    background-image: url('img/logo-uai-corporate.png');
     background-repeat: no-repeat;
     background-size: contain;
     width: 350px;

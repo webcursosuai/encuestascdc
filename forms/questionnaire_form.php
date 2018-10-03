@@ -10,7 +10,7 @@
 require_once ($CFG->libdir . '/formslib.php');
 require_once ($CFG->libdir . '/coursecatlib.php');
 
-class local_uaio_questionnaire_form extends moodleform {
+class local_encuestascdc_questionnaire_form extends moodleform {
 
 	public function definition() {
 	    global $DB, $CFG;
@@ -30,7 +30,7 @@ class local_uaio_questionnaire_form extends moodleform {
 		} else {
 		
 		$select = array();
-		$select[] = get_string('selectquestionnaire', 'local_uaio');
+		$select[] = get_string('selectquestionnaire', 'local_encuestascdc');
 		
 		if(!$questionnaires = $DB->get_records('questionnaire', array('course'=>$courseid))) {
 			print_error('Curso sin encuestas');
@@ -40,8 +40,8 @@ class local_uaio_questionnaire_form extends moodleform {
 		    $select[$questionnaire->id] = $questionnaire->name;
 		}
 		
-		$formselect = $mform->addElement('select', 'qid', get_string('questionnaire', 'local_uaio'), $select);
-		$mform->addHelpButton('qid', 'questionnaire', 'local_uaio');
+		$formselect = $mform->addElement('select', 'qid', get_string('questionnaire', 'local_encuestascdc'), $select);
+		$mform->addHelpButton('qid', 'questionnaire', 'local_encuestascdc');
 		$mform->addElement('hidden', 'id', $courseid);
 		$mform->setType('id', PARAM_INT);
 		
@@ -57,9 +57,9 @@ class local_uaio_questionnaire_form extends moodleform {
 		    }
 		}
 
-		$formselect = $mform->addElement('select', 'layout', get_string('questionnaire_report_layout', 'local_uaio'), $cleanfiles);
+		$formselect = $mform->addElement('select', 'layout', get_string('questionnaire_report_layout', 'local_encuestascdc'), $cleanfiles);
 		
-		$this->add_action_buttons(false, get_string('search', 'local_uaio'));
+		$this->add_action_buttons(false, get_string('search', 'local_encuestascdc'));
 				}
 		}
 
