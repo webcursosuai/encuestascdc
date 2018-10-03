@@ -15,7 +15,7 @@
 // along with Moodle. If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Configuración de administración de UAI Online.
+ * Configuración de administración de UAI Corporate.
  *
  * @package local
  * @subpackage encuestascdc
