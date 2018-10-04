@@ -1,0 +1,163 @@
+@charset "UTF-8";
+html, body, .main, .tabs, .tabbed-content { float: none; }
+@media print {
+    body {
+        -webkit-print-color-adjust: exact; /*Chrome, Safari */
+        color-adjust: exact; /*Firefox*/
+    }
+}
+@page {
+  size: letter landscape;
+  margin: 0cm;
+  @top-left {
+        content: "Header";
+        border: 1px solid red;
+  }
+}
+.uai-corporate-logo {
+    background-image: url('img/logo-uai-corporate.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 350px;
+    height: 115px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.datos {display:none;}
+@page :first {
+    background-color: #000;
+    color: #fff;
+}
+.card {border:none;}
+.break-before {
+    display: block;
+    page-break-before: always;
+    position: relative;
+    clear: both;
+    margin-top: 2cm;
+}
+.break-after {
+    display: block;
+    page-break-after: always;
+    position: relative;
+}
+table, figure, img {
+  page-break-inside: avoid;
+}
+.encuesta {
+    margin-right:20px;
+}
+.titulografico {font-size: 12px;}
+.promedio {font-size: 16px; font-weight: bold;}
+.numrespuestas {font-size: 12px;}
+.escala {
+    border: 1px solid black;
+    width: 420px;
+    padding: 5px;
+}
+div.multicol {
+    margin-bottom: 2em;
+    text-align: justify;
+    hyphens: auto;
+    page-break-after: always;
+    font-size: 11pt;
+}
+h1 {
+    column-span: all;
+}
+.cols-4 {
+    column-count: 4;
+    -webkit-column-count: 4;
+    column-gap: 1cm;
+    column-rule: 1px solid #eee;
+}
+.cols-3 {
+    column-count: 3;
+    -webkit-column-count: 3;
+    column-gap: 1cm;
+    column-rule: 1px solid #eee;
+}
+.cols-2 {
+    column-count: 2;
+    -webkit-column-count: 2;
+    column-gap: 1cm;
+    column-rule: 1px solid #eee;
+}
+.hyphenate {
+    text-align: justify;
+    hyphenate-before: 4;
+    hyphenate-after: 3;
+    hyphens: auto;
+    -epub-hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    page-break-after: always;
+}
+.primera-pagina {
+    background-color: #000;
+    color: #fff;
+    height: 740px;
+    overflow: hidden;
+    margin-top: -50px;
+    text-align: center;
+}
+.primera-pagina h1 {
+    width: 450px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.subtitulo {
+    color: #d2471a;
+    text-transform: uppercase;
+    font-size: 25px;
+    font-weight: bold;
+}
+.portada-item {
+    background-color: #595959;
+    color: #fff;
+    width: 30%
+}
+.portada-valor {
+    width: 70%;
+}
+.portada {
+    margin-left: auto;
+    margin-right: auto;
+    width: 60%;
+    border-spacing: 20px;
+    border-collapse: separate;
+}
+.portada td {
+    border: 1px solid white;
+    padding: 10px;
+    font-size: 20px;
+    font-weight: bold;
+}
+.navegacion {
+    height: 740px;
+    overflow: hidden;
+    background-color: #ff3300;
+    color: #fff;
+    padding-left: 30%;
+    padding-top: 300px;
+}
+.navegacion h1 {
+    text-transform: uppercase;
+    font-weight: bold;
+}
+.navegacion ul {
+    list-style: none;
+    font-size: 20px;
+    line-height: 30px;
+}
+.navegacion .activo::before{
+    font-family: "FontAwesome";
+    content: "\f0da";
+    color: #000;
+    font-size: 50px;
+    position: relative;
+    left: -20px;
+    top: 10px;
+    margin-right: -17px;
+}

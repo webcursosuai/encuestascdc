@@ -1,0 +1,129 @@
+@charset "UTF-8";
+html, body, .main, .tabs, .tabbed-content { float: none; }
+h1 {
+    font-size: 16px;
+    font-weight: bold;
+}
+@media print {
+    body {
+        -webkit-print-color-adjust: exact; /*Chrome, Safari */
+        color-adjust: exact; /*Firefox*/
+    }
+}
+@page {
+  size: letter;
+  margin: 0cm;
+  @top-left {
+        content: "Header";
+        border: 1px solid red;
+  }
+}
+.datos {
+	margin-left: auto;
+}
+.datos.cel-4 {
+	width: 250px;
+}
+.datos.cel-7 {
+	width: 350px;
+}
+.datos td {
+    border: 1px solid black;
+    width: 50px;
+    text-align: center;
+    font-size: 12px;
+}
+.trgrafico {
+	display: none;
+}
+.uai-corporate-logo {
+    background-image: url('img/logo-uai-corporate-no-transparente.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 200px;
+    height: 67px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.reporte_titulo {
+    font-weight: bold;
+    width: 100%;
+    font-size: 16px;
+    background-color: #666;
+    color: #fff;
+    padding: 5px;
+    text-transform: uppercase;
+}
+.card {border:none;}
+.break-before {
+    display: block;
+    position: relative;
+    clear: both;
+    margin-top: 1cm;
+}
+.break-after {
+    display: block;
+    position: relative;
+}
+table, figure, img {
+  page-break-inside: avoid;
+}
+.encuesta {
+    margin-right:20px;
+}
+.titulografico {
+	font-size: 12px;
+		width: 60%;
+}
+.promedio {font-size: 16px; font-weight: bold;}
+.numrespuestas {font-size: 12px;}
+.escala {
+    border: 1px solid black;
+    width: 420px;
+    padding: 5px;
+    margin-left: auto;
+    margin-top: -40px;
+    font-size: 10px;
+}
+
+.primera-pagina {
+    background-color: #fff;
+    color: #000;
+}
+.subtitulo, .escala-2, .escala-3 {
+	display: none;
+}
+.portada-item {
+    color: #595959;
+    width: 30%
+}
+.portada-valor {
+    width: 70%;
+}
+.portada {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    border-spacing: 0px;
+    border-collapse: separate;
+}
+.portada td {
+    border: 1px solid white;
+    padding: 1px;
+    font-size: 12px;
+    font-weight: bold;
+}
+.navegacion {
+	display: none;
+}
+.hyphenate {
+    text-align: justify;
+    hyphenate-before: 4;
+    hyphenate-after: 3;
+    hyphens: auto;
+    -epub-hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    page-break-after: always;
+}
