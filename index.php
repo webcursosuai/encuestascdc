@@ -173,7 +173,7 @@ SELECT qu.id,
 FROM
 	{questionnaire} qu
 	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = $questionnaireid)
-	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = $moduleid AND cm.instance = qu.id AND cm.visible = 1 AND cm.deletioninprogress = 0)
+	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = $moduleid AND cm.instance = qu.id AND cm.visible = 1)
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
 	INNER JOIN {questionnaire_question} q ON (q.survey_id = s.id and q.type_id = $typeid and q.deleted = 'n')
 	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = $typeid)
@@ -270,7 +270,7 @@ ORDER BY q.name, s.id, qc.content";
         $tablahtml .= '</table>';
         
         // Crea chart
-        ### Con esto saco frecuencias fácilmente
+/*        ### Con esto saco frecuencias fácilmente
         $vals = array_values($values);
         $labels = array_keys($values);
         ### Preparo data para pasárselo al chart
@@ -286,9 +286,9 @@ ORDER BY q.name, s.id, qc.content";
         ### Frecuencias se miden sólo en enteros (duh)
         $xaxis->set_stepsize(1);
         $chart->set_xaxis($xaxis);
-        $width = $respuesta->length == 4 ? 400 : 450;
+        $width = $respuesta->length == 4 ? 400 : 450; */
         $titulografico = trim(str_ireplace(array('a)','b)','c)','d)','e)', 'f)', 'g)', 'h)', 'i)', 'j)'), '', $respuesta->opcion));
-        $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td><td>'.$tablahtml.'</td></tr><tr class="trgrafico"><td class="tdgrafico">'. $OUTPUT->render_chart($chart, false) . '</td><td>' .  $resumenhtml. '</td></tr></table>'; ### Se proyecta Chart
+        $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td><td>'.$tablahtml.'</td></tr><tr class="trgrafico"><td class="tdgrafico">'. '</td><td>' .  $resumenhtml. '</td></tr></table>'; ### Se proyecta Chart
         $charthtml = html_writer::div($charthtml,'encuesta');
         $fullhtml .= $charthtml;
     }
