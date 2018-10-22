@@ -1,11 +1,5 @@
 @charset "UTF-8";
 html, body, .main, .tabs, .tabbed-content { float: none; }
-@media print {
-    body {
-        -webkit-print-color-adjust: exact; /*Chrome, Safari */
-        color-adjust: exact; /*Firefox*/
-    }
-}
 @page {
   size: letter landscape;
   margin: 0cm;
@@ -14,6 +8,7 @@ html, body, .main, .tabs, .tabbed-content { float: none; }
         border: 1px solid red;
   }
 }
+header {display:none;}
 .uai-corporate-logo {
     background-image: url('img/logo-uai-corporate.png');
     background-repeat: no-repeat;

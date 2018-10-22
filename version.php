@@ -26,5 +26,5 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->version = 2018100201; // The current module version (Date: YYYYMMDDXX).
-$plugin->requires = 2017051500; // Requires this Moodle version.
+$plugin->requires = 2016010100; // Requires this Moodle version.
 $plugin->component = 'local_encuestascdc'; // To check on upgrade, that module sits in correct place.
