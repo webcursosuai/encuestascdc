@@ -31,3 +31,7 @@ $string['questionnaire']='Encuesta';
 $string['selectquestionnaire']='Seleccione encuesta';
 $string['questionnaire_help']='Seleccione la encuesta para la cual se generará el reporte';
 $string['questionnaire_report_layout']='Plantilla de reporte';
+// Form
+$string['search']='Buscar';
+$string['profesor']='Profesor';
+$string['coordinadora']='Coordinadora';

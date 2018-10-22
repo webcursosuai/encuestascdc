@@ -18,6 +18,21 @@ h1 {
         border: 1px solid red;
   }
 }
+.nombreprofesor {
+    font-size: 16px;
+}
+.comentarios {
+	font-size: 12px;
+    float: right;
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+}
+@media print {
+	.comentarios {
+		resize: none;
+	}
+}
 .datos {
 	margin-left: auto;
 }
@@ -73,7 +88,8 @@ table, figure, img {
 }
 .titulografico {
 	font-size: 12px;
-		width: 60%;
+	width: 60%;
+	vertical-align: top;
 }
 .promedio {font-size: 16px; font-weight: bold;}
 .numrespuestas {font-size: 12px;}
