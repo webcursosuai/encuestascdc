@@ -178,6 +178,13 @@ list($grafico, $secciones) = uol_grafico_encuesta_rank($questionnaire->id, $modu
 // Se muestra la tabla de contenidos con las secciones
 echo uol_tabla_contenidos($secciones, 1);
 
+?>
+<style>
+<!--
+
+-->
+</style>
+<?php
 // Se muestran los gráficos
 echo $grafico;
 
@@ -394,13 +401,16 @@ function uol_tabla_respuesta_rank($respuesta) {
     
     // HTML y clase CSS para tabla de datos
     $classtabla = "cel-".$respuesta->length;
-    $tablahtml = '<table class="datos '.$classtabla.'">';
-    $tablahtml .= "<td>$valuesna</td>";
+    $tablahtml = '<table class="datos '.$classtabla.'"><tr><td>';
+    $percent = $total > 0 ? round(($valuesna / $total) * 50,0) : 0;
+    $tablahtml .= "<div class=\"circulo\"><div class=\"circulo-interno nivel0\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$valuesna</div></div></div>";
+    $nivel = 1;
     foreach($values as $val) {
-        $percent = $total > 0 ? round(($val / $total) * 100,1) : 0;
-        $tablahtml .= "<td>$percent%</td>";
+        $percent = $total > 0 ? round(($val / $total) * 50,0) : 0;
+        $tablahtml .= "<div class=\"circulo\"><div class=\"circulo-interno nivel$nivel-$respuesta->length\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$val</div></div></div>";
+        $nivel++;
     }
-    $tablahtml .= '</table>';
+    $tablahtml .= '</td></tr></table>';
     
     // Crea chart
     /*        ### Con esto saco frecuencias fácilmente
