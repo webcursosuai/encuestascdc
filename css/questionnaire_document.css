@@ -43,7 +43,7 @@ header {
 	width: 300px;
 }
 .datos.cel-7 {
-	width: 350px;
+	width: 460px;
 }
 .datos td {
     border: 1px solid black;
@@ -73,18 +73,26 @@ header {
   text-align: center;
   float: left;
   margin-right: 5px;
+    display: flex;
+    align-items: center;  
 }
 .circulo-interno {
   border-radius: 50%;
   border: 1px solid #999;
   display: flex;
   align-items: center;
+    margin-left: auto;
+    margin-right: auto;  
 }
 .numero {
 	vertical-align: middle;
 	margin: 0px;
 	margin-left: auto;
 	margin-right: auto;
+}
+.cero {
+    border: none;
+    background-color: transparent;
 }
 .trgrafico {
 	display: none;

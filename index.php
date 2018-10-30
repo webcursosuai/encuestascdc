@@ -403,11 +403,21 @@ function uol_tabla_respuesta_rank($respuesta) {
     $classtabla = "cel-".$respuesta->length;
     $tablahtml = '<table class="datos '.$classtabla.'"><tr><td>';
     $percent = $total > 0 ? round(($valuesna / $total) * 50,0) : 0;
-    $tablahtml .= "<div class=\"circulo\"><div class=\"circulo-interno nivel0\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$valuesna</div></div></div>";
+    $classinterno = '';
+    if($valuesna == 0) {
+        $valuesna = '-';
+        $classinterno = 'cero';
+    }
+    $tablahtml .= "<div class=\"circulo\"><div class=\"circulo-interno nivel0 $classinterno\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$valuesna</div></div></div>";
     $nivel = 1;
     foreach($values as $val) {
         $percent = $total > 0 ? round(($val / $total) * 50,0) : 0;
-        $tablahtml .= "<div class=\"circulo\"><div class=\"circulo-interno nivel$nivel-$respuesta->length\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$val</div></div></div>";
+        $classinterno = '';
+        if($val == 0) {
+            $val = '-';
+            $classinterno = 'cero';
+        }
+        $tablahtml .= "<div class=\"circulo\"><div class=\"circulo-interno nivel$nivel-$respuesta->length $classinterno\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$val</div></div></div>";
         $nivel++;
     }
     $tablahtml .= '</td></tr></table>';
