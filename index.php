@@ -25,15 +25,21 @@
 require_once (dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once ('forms/questionnaire_form.php');
 
-// El usuario debe estar logueado
-require_login();
-
-// El usuario debe tener permisos para configurar e sitio (ser administrador)
-$context = context_system::instance();
-require_capability('moodle/site:config', $context);
-
 // id del curso
-$courseid = optional_param('id', 0, PARAM_INT);
+$courseid = required_param('id', PARAM_INT);
+
+// Si ya se escogió encuesta, valida el curso
+if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
+    print_error('Curso inválido');
+}
+
+// El usuario debe tener permiso asignado
+$context = context_course::instance($courseid);
+require_capability('local/encuestascdc:view', $context);
+
+// El usuario debe estar logueado
+require_login($course);
+
 // id de la encuesta
 $qid = optional_param('qid', 0, PARAM_INT);
 // layout a mostrar
@@ -49,41 +55,37 @@ if(!$module = $DB->get_record('modules', array('name'=>'questionnaire'))) {
 // Configuración de página
 $PAGE->set_context($context);
 $PAGE->set_url('/local/encuestascdc/index.php');
-$PAGE->set_heading('Reporte encuesta');
-$PAGE->set_pagelayout('print');
-
-// Header de la páginas
-echo $OUTPUT->header();
+$PAGE->set_heading('Reporte de encuestas UAI Corporate');
 
 // Si no se ha seleccionado una encuesta aún, mostrar el formulario
-if($qid == 0 || $courseid == 0) {
-	echo $OUTPUT->heading('Reporte de encuestas UAI Corporate');
-	$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'GET');
+if($qid == 0) {
+    $PAGE->set_pagelayout('course');
+    // Header de la páginas
+    echo $OUTPUT->header();
+    
+    $form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'GET');
     $form->display();
     echo $OUTPUT->footer();
     die();
 }
+
+$PAGE->set_pagelayout('print');
+// Header de la páginas
+echo $OUTPUT->header();
 
 // Parámetros necesarios para imprimir la encuesta
 $profesor1 = required_param('profesor1', PARAM_RAW_TRIMMED);
 $profesor2 = optional_param('profesor2', '', PARAM_RAW_TRIMMED);
 $coordinadora = required_param('coordinadora', PARAM_RAW_TRIMMED);
 
-// Si ya se escogió encuesta, valida el curso
-if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
-	print_error('Curso inválido');
-}
-
 // Valida la categoría del curso
 if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->category))) {
 	print_error('Curso inválido');
 }
 
-// Contexto del curso
-$coursecontext = context_course::instance($course->id);
-
 // Listado de profesores dentro del curso
-$profesores = get_enrolled_users($coursecontext, 'mod/assign:grade');
+$rolprofesor = $DB->get_record('role', array('shortname' => 'teacher'));
+$profesores = get_role_users($role->id, $context);
 
 // Validación del objeto encuesta
 if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {

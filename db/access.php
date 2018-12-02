@@ -15,16 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Defines the version of the UAI Corporate plugin
-*
-* @package local
-* @subpackage encuestascdc
-* @copyright 2018-onwards Universidad Adolfo Ibáñez
-* @author Jorge Villalón <jorge.villalon@uai.cl>
-* @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
-*/
+ * Capabilities para encuestas CDC
+ *
+ * @package local
+ * @subpackage encuestascdc
+ * @copyright 2018 Universidad Adolfo Ibáñez
+ * @author Jorge Villalón <jorge.villalon@uai.cl>
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 defined('MOODLE_INTERNAL') || die();
-
-$plugin->version = 2018120202; // The current module version (Date: YYYYMMDDXX).
-$plugin->requires = 2016010100; // Requires this Moodle version.
-$plugin->component = 'local_encuestascdc'; // To check on upgrade, that module sits in correct place.
+$capabilities = array(
+    'local/encuestascdc:view' => array(
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => array(
+            'manager' => CAP_ALLOW
+        )
+    )
+);

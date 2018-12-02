@@ -27,6 +27,7 @@
 $string['pluginname']='UAI Corporate';
 
 // Reporte encuestas CDC
+$string['questionnairereport']='Reporte encuesta';
 $string['questionnaire']='Encuesta';
 $string['selectquestionnaire']='Seleccione encuesta';
 $string['questionnaire_help']='Seleccione la encuesta para la cual se generará el reporte';
