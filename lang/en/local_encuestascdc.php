@@ -27,6 +27,7 @@
 $string['pluginname']='UAI Corporate';
 
 // Reporte encuestas CDC
+$string['questionnairereport']='Reporte encuesta';
 $string['questionnaire']='Encuesta';
 $string['selectquestionnaire']='Seleccione encuesta';
 $string['questionnaire_help']='Seleccione la encuesta para la cual se generará el reporte';
@@ -35,3 +36,5 @@ $string['questionnaire_report_layout']='Plantilla de reporte';
 $string['search']='Buscar';
 $string['profesor']='Profesor';
 $string['coordinadora']='Coordinadora';
+// Permisos
+$string['encuestascdc:view'] = 'Ver reporte UAI Corporate';

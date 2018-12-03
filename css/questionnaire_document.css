@@ -4,19 +4,24 @@ h1 {
     font-size: 16px;
     font-weight: bold;
 }
+header {
+	display: none;
+}
 @media print {
     body {
         -webkit-print-color-adjust: exact; /*Chrome, Safari */
         color-adjust: exact; /*Firefox*/
     }
+    .seccioncompleta {
+    	page-break-inside: avoid;
+    }
 }
 @page {
   size: letter;
-  margin: 0cm;
-  @top-left {
-        content: "Header";
-        border: 1px solid red;
-  }
+  margin-top: 11mm;
+  margin-right: 11mm;
+  margin-left: 11mm;
+  margin-bottom: 11mm;
 }
 .nombreprofesor {
     font-size: 16px;
@@ -37,35 +42,69 @@ h1 {
 	margin-left: auto;
 }
 .datos.cel-4 {
-	width: 250px;
+	width: 100%;
 }
 .datos.cel-7 {
-	width: 350px;
+	width: 100%;
 }
-.datos td {
-    border: 1px solid black;
-    width: 50px;
+.datos.cel-4 td {
+    width: 20%;
     text-align: center;
     font-size: 12px;
+}
+.datos.cel-7 td {
+    width: 12.5%;
+    text-align: center;
+    font-size: 12px;
+}
+.circulo {
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+.circulo-interno {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: auto;  
+}
+.numero {
+	vertical-align: middle;
+	margin: 0px;
+	margin-left: auto;
+	margin-right: auto;
+}
+.cero {
+    border: none;
+    background-color: transparent;
 }
 .trgrafico {
 	display: none;
 }
+.logos {
+	height: 60px;
+}
 .uai-corporate-logo {
-    background-image: url('img/logo-uai-corporate-no-transparente.png');
-    background-repeat: no-repeat;
-    background-size: contain;
     width: 200px;
     height: 67px;
-    margin-left: auto;
-    margin-right: auto;
+    float: left;
+}
+.uai-logo {
+    width: 200px;
+    height: 67px;
+    float: right;
 }
 .reporte_titulo {
     font-weight: bold;
     width: 100%;
     font-size: 16px;
-    background-color: #666;
-    color: #fff;
+    color: #666;
     padding: 5px;
     text-transform: uppercase;
 }
@@ -86,27 +125,37 @@ table, figure, img {
 .encuesta {
     margin-right:20px;
 }
+.tituloseccion {
+	font-size: 16px;
+	font-weight: bold;
+}
+.seccion {
+	border-bottom: 3px solid #EA4E1D;
+}
 .titulografico {
-	font-size: 12px;
-	width: 60%;
-	vertical-align: top;
+	width: 50%;
+	vertical-align: middle;
+	padding-right: 50px;
 }
 .promedio {font-size: 16px; font-weight: bold;}
 .numrespuestas {font-size: 12px;}
 .escala {
-    border: 1px solid black;
-    width: 420px;
-    padding: 5px;
-    margin-left: auto;
-    margin-top: -40px;
-    font-size: 10px;
+    font-size: 1em;
+}
+.tituloescala {
+    color: #999;
+    font-weight: bold;
+	text-transform: uppercase;
+}
+.escala td {
+    text-align: center;
 }
 
 .primera-pagina {
     background-color: #fff;
     color: #000;
 }
-.subtitulo, .escala-2, .escala-3 {
+.subtitulo {
 	display: none;
 }
 .portada-item {
@@ -122,12 +171,11 @@ table, figure, img {
     width: 100%;
     border-spacing: 0px;
     border-collapse: separate;
+    font-size: 16px;
 }
 .portada td {
     border: 1px solid white;
     padding: 1px;
-    font-size: 12px;
-    font-weight: bold;
 }
 .navegacion {
 	display: none;

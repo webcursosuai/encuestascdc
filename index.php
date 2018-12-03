@@ -25,15 +25,21 @@
 require_once (dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once ('forms/questionnaire_form.php');
 
-// El usuario debe estar logueado
-require_login();
-
-// El usuario debe tener permisos para configurar e sitio (ser administrador)
-$context = context_system::instance();
-require_capability('moodle/site:config', $context);
-
 // id del curso
-$courseid = optional_param('id', 0, PARAM_INT);
+$courseid = required_param('id', PARAM_INT);
+
+// Si ya se escogió encuesta, valida el curso
+if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
+    print_error('Curso inválido');
+}
+
+// El usuario debe estar logueado
+require_login($course);
+
+// El usuario debe tener permiso asignado
+$context = context_course::instance($courseid);
+require_capability('local/encuestascdc:view', $context);
+
 // id de la encuesta
 $qid = optional_param('qid', 0, PARAM_INT);
 // layout a mostrar
@@ -49,41 +55,37 @@ if(!$module = $DB->get_record('modules', array('name'=>'questionnaire'))) {
 // Configuración de página
 $PAGE->set_context($context);
 $PAGE->set_url('/local/encuestascdc/index.php');
-$PAGE->set_heading('Reporte encuesta');
-$PAGE->set_pagelayout('print');
+$PAGE->set_heading('Reporte de encuestas UAI Corporate');
+$PAGE->set_pagelayout('course');
 
-// Header de la páginas
-echo $OUTPUT->header();
+$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'POST');
 
 // Si no se ha seleccionado una encuesta aún, mostrar el formulario
-if($qid == 0 || $courseid == 0) {
-	echo $OUTPUT->heading('Reporte de encuestas UAI Corporate');
-	$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'GET');
+if(!$form->get_data()) {
+    // Header de la páginas
+    echo $OUTPUT->header();
     $form->display();
     echo $OUTPUT->footer();
     die();
 }
+
+$PAGE->set_pagelayout('print');
+// Header de la páginas
+echo $OUTPUT->header();
 
 // Parámetros necesarios para imprimir la encuesta
 $profesor1 = required_param('profesor1', PARAM_RAW_TRIMMED);
 $profesor2 = optional_param('profesor2', '', PARAM_RAW_TRIMMED);
 $coordinadora = required_param('coordinadora', PARAM_RAW_TRIMMED);
 
-// Si ya se escogió encuesta, valida el curso
-if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
-	print_error('Curso inválido');
-}
-
 // Valida la categoría del curso
 if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->category))) {
 	print_error('Curso inválido');
 }
 
-// Contexto del curso
-$coursecontext = context_course::instance($course->id);
-
 // Listado de profesores dentro del curso
-$profesores = get_enrolled_users($coursecontext, 'mod/assign:grade');
+$rolprofesor = $DB->get_record('role', array('shortname' => 'teacher'));
+$profesores = get_role_users($role->id, $context);
 
 // Validación del objeto encuesta
 if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
@@ -131,9 +133,14 @@ if($layout) {
 ?>
 </style>
 <?php
+
 // Se muestra la primera página con información del informe y general
 echo html_writer::start_div('primera-pagina');
-echo "<div class='uai-corporate-logo'></div>";
+echo html_writer::start_div('logos');
+echo "<div class='uai-corporate-logo'><img width=200 height=67 src='img/logo-uai-corporate-no-transparente.png'></div>";
+echo "<div class='uai-logo'><img width=200 height=67 src='img/logo_uai_parche_negro.jpg'></div>";
+echo html_writer::end_div();
+
 echo $OUTPUT->heading('Encuesta de Satisfacción de Programas Corporativos', 1, array('class'=>'reporte_titulo'));
 echo html_writer::div('Informe de resultados', 'subtitulo');
 
@@ -178,6 +185,13 @@ list($grafico, $secciones) = uol_grafico_encuesta_rank($questionnaire->id, $modu
 // Se muestra la tabla de contenidos con las secciones
 echo uol_tabla_contenidos($secciones, 1);
 
+?>
+<style>
+<!--
+
+-->
+</style>
+<?php
 // Se muestran los gráficos
 echo $grafico;
 
@@ -210,15 +224,15 @@ SELECT qu.id,
     q.position,
 	qt.type
 FROM
-	mdl_questionnaire qu
-	INNER JOIN mdl_course c ON (qu.course = c.id AND qu.id = $questionnaireid)
-	INNER JOIN mdl_course_modules cm on (cm.course = qu.course AND cm.module = $moduleid AND cm.instance = qu.id AND cm.visible = 1)
-	INNER JOIN mdl_questionnaire_survey s ON (s.id = qu.sid)
-	INNER JOIN mdl_questionnaire_question q ON (q.survey_id = s.id and q.type_id = $typerankid and q.deleted = 'n')
-	INNER JOIN mdl_questionnaire_quest_choice qc ON (qc.question_id = q.id and q.type_id = $typerankid)
-    INNER JOIN mdl_questionnaire_question_type qt ON (q.type_id = qt.typeid)
-	LEFT JOIN mdl_questionnaire_response r ON (r.survey_id = s.id)
-	LEFT JOIN mdl_questionnaire_response_rank rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
+	{questionnaire} qu
+	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid)
+	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid AND cm.instance = qu.id AND cm.visible = 1)
+	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
+	INNER JOIN {questionnaire_question} q ON (q.survey_id = s.id and q.type_id = :typerankid and q.deleted = 'n')
+	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = :typerankid2)
+    INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
+	LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
+	LEFT JOIN {questionnaire_response_rank} rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
 GROUP BY qu.id,c.id,s.id, q.id, qc.id
 UNION ALL
 SELECT qu.id,
@@ -233,19 +247,28 @@ SELECT qu.id,
     q.position,
     qt.type
 FROM
-	mdl_questionnaire qu
-	INNER JOIN mdl_course c ON (qu.course = c.id AND qu.id = $questionnaireid)
-	INNER JOIN mdl_course_modules cm on (cm.course = qu.course AND cm.module = $moduleid AND cm.instance = qu.id AND cm.visible = 1)
-	INNER JOIN mdl_questionnaire_survey s ON (s.id = qu.sid)
-	INNER JOIN mdl_questionnaire_question q ON (q.survey_id = s.id and q.type_id = $typetextid and q.deleted = 'n')
-    INNER JOIN mdl_questionnaire_question_type qt ON (q.type_id = qt.typeid)
-    LEFT JOIN mdl_questionnaire_response r ON (r.survey_id = s.id)
-    LEFT JOIN mdl_questionnaire_response_text rt ON (rt.response_id = r.id AND rt.question_id = q.id)
+	{questionnaire} qu
+	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid2)
+	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid2 AND cm.instance = qu.id AND cm.visible = 1)
+	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
+	INNER JOIN {questionnaire_question} q ON (q.survey_id = s.id and q.type_id = :typetextid and q.deleted = 'n')
+    INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
+    LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
+    LEFT JOIN {questionnaire_response_text} rt ON (rt.response_id = r.id AND rt.question_id = q.id)
 GROUP BY qu.id,c.id,s.id, q.id
 ORDER BY position";
     
+    $params = array(
+        'questionnaireid' => $questionnaireid,
+        'moduleid' => $moduleid,
+        'typerankid' => $typerankid,
+        'typerankid2' => $typerankid,
+        'questionnaireid2' => $questionnaireid,
+        'moduleid2' => $moduleid,
+        'typetextid' => $typetextid
+    );
     // Todas las respuestas
-    $respuestas = $DB->get_recordset_sql($sql);
+    $respuestas = $DB->get_recordset_sql($sql, $params);
     // Arreglo con los nombres de secciones
     $secciones = Array();
     // El html que se devuelve en el primer parámetro
@@ -265,8 +288,24 @@ ORDER BY position";
             }
             // Se agregar un break vacío
             $fullhtml .= "<div class='break-after'></div>";
+            $fullhtml .= "<div class='multicol cols-2 seccioncompleta'>";
+            
             // Partimos con un break antes del título y el título
-            $fullhtml .= "<h1 class='break-before'>". $respuesta->seccion . "</h1>";
+            if($respuesta->type === "Rate (scale 1..5)") {
+                if($respuesta->length == 4) {
+                    $fullhtml .= "<div class='encuesta break-before seccion'>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con las siguientes afirmaciones</div><table width='100%'><tr><td width='20%'>NS/NC</td><td width='20%'>Bajo</td><td width='20%'>Medio Bajo</td><td width='20%'>Medio Alto</td><td width='20%'>Alto</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+                </div>";
+                } elseif($respuesta->length == 7) {
+                    $fullhtml .= "<div class='encuesta break-before seccion'>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente</div><table width='100%'><tr><td width='12.5%'>NS/NC</td><td width='12.5%'>Muy Malo</td><td width='12.5%'>Malo</td><td width='12.5%'>Medio Malo</td><td width='12.5%'>Medio</td><td width='12.5%'>Bueno</td><td width='12.5%'>Muy Bueno</td><td width='12.5%'>Excelente</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+                </div>";
+                } else {
+                    $fullhtml .= '<div>WTF</div>';
+                }
+            } else {
+                $fullhtml .= "<div class='tituloseccion break-before seccion'>". $respuesta->seccion . "</div>";
+            }
             if(stripos($respuesta->seccion, "PROFESOR") !== false) {
                 $fullhtml .= "<h2 class='nombreprofesor'>$profesor1</h2>";
                 $profesores++;
@@ -279,13 +318,11 @@ ORDER BY position";
             $secciones[] = $ultimaseccion;
             // Clase para la escala de acuerdo al número de secciones
             $classescala = "escala-" . count($secciones);
-            if($respuesta->length == 4) {
-                $fullhtml .= "<div class='escala $classescala'>Nivel de conformidad con las siguientes afirmaciones<br/><table width='100%'><tr><td width='25%'>1: Bajo</td><td width='25%'>2: Medio Bajo</td><td width='25%'>3: Medio Alto</td><td width='25%'>4: Alto</td></tr></table></div>";
-            } elseif($respuesta->length == 7) {
-                $fullhtml .= "<div class='escala $classescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente</div>";
-            }
-            $fullhtml .= "<div class='multicol cols-2'>";
         } elseif(stripos($respuesta->seccion, "PROFESOR") !== false && $profesores > 0 && substr($respuesta->opcion, 0, 2) === "a)") {
+            $fullhtml .= "</div><div class='multicol cols-2 seccioncompleta'>";
+            $fullhtml .= "<div class='encuesta break-before seccion'>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con las siguientes afirmaciones</div><table width='100%'><tr><td width='20%'>NS/NC</td><td width='20%'>Bajo</td><td width='20%'>Medio Bajo</td><td width='20%'>Medio Alto</td><td width='20%'>Alto</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+                </div>";
             $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
         }
         if($respuesta->type === "Rate (scale 1..5)") {
@@ -350,6 +387,21 @@ function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinad
 }
 
 function uol_tabla_respuesta_rank($respuesta) {
+    $gradient = array(
+        1 => "EF494F",
+        2 => "E96946",
+        3 => "E38E44",
+        4 => "DDB142",
+        5 => "D7D23F",
+        6 => "B1D13D",
+        7 => "88CB3B",
+        8 => "60C539",
+        9 => "3BBF37",
+        10 => "35B951",
+        11 => "33B26F"
+    );
+    
+    
     // Todas las respuestas, indicando qué rank escogió de entre 0 y length - 1
     $ranks = explode('#', $respuesta->answers);
     // Totales de respuestas por cada rank
@@ -391,16 +443,46 @@ function uol_tabla_respuesta_rank($respuesta) {
     
     // Resumen de promedio y número respuestas
     $resumenhtml = '<div class="promedio">' . $promedio . '</div><div class="numrespuestas hyphenate">Nº respuestas: ' . $total . '</div>';
-    
+
+    $max = 0;
+    foreach($values as $idx => $val) {
+        if($val > $max) {
+            $max = $val;
+        }
+    }
     // HTML y clase CSS para tabla de datos
     $classtabla = "cel-".$respuesta->length;
-    $tablahtml = '<table class="datos '.$classtabla.'">';
-    $tablahtml .= "<td>$valuesna</td>";
-    foreach($values as $val) {
-        $percent = $total > 0 ? round(($val / $total) * 100,1) : 0;
-        $tablahtml .= "<td>$percent%</td>";
+    $tablahtml = '<table class="datos '.$classtabla.'"><tr>';
+    $percent = $max > 0 ? round(($valuesna / $max) * 33,0) + 17 : 0;
+    $classinterno = '';
+    if($valuesna == 0) {
+        $valuesna = '-';
+        $classinterno = 'cero';
     }
-    $tablahtml .= '</table>';
+    $tablahtml .= "<td><div class=\"circulo\"><div class=\"circulo-interno nivel0 $classinterno\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$valuesna</div></div></div></td>";
+    $nivel = 1;
+    foreach($values as $idx => $val) {
+        $percent = $max > 0 ? round(($val / $max) * 16,0) + 9 : 0;
+        $indexgradient = 1 + (10/$respuesta->length) * ($nivel - 1);
+        $fill = "#" . $gradient[$indexgradient];
+        $classinterno = '';
+        if($val == 0) {
+            $val = '-';
+            $classinterno = 'cero';
+            $fill = '#fff';
+        }
+        // $tablahtml .= "<td><div class=\"circulo\"><div class=\"circulo-interno nivel$nivel-$respuesta->length $classinterno\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$val</div></div></div></td>";
+        $tablahtml .= "<td><svg width='50' height='50'><circle cx='25' cy='25' r='$percent' stroke='none' fill='$fill' />
+<text font-size='12'
+      fill='black'
+      font-family='Verdana'
+      text-anchor='middle'
+      alignment-baseline='baseline'
+      x='25'
+      y='30'>$val</text></svg></td>";
+        $nivel++;
+    }
+    $tablahtml .= '</tr></table>';
     
     // Crea chart
     /*        ### Con esto saco frecuencias fácilmente
