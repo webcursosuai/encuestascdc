@@ -46,7 +46,7 @@ class local_encuestascdc_questionnaire_form extends moodleform
             $this->add_action_buttons(false, 'Buscar encuestas');
         } else {
             $select = array();
-            $select[] = get_string('selectquestionnaire', 'local_encuestascdc');
+            $select[0] = get_string('selectquestionnaire', 'local_encuestascdc');
             
             if (! $questionnaires = $DB->get_records_sql('
         SELECT q.*,cs.name section
@@ -68,6 +68,7 @@ class local_encuestascdc_questionnaire_form extends moodleform
             $mform->addHelpButton('qid', 'questionnaire', 'local_encuestascdc');
             $mform->addElement('hidden', 'id', $courseid);
             $mform->setType('id', PARAM_INT);
+            $mform->addRule('qid', 'Debe seleccionar una encuesta', 'required');
             
             $files = scandir("css/");
             $suffix = ".css";
@@ -84,7 +85,8 @@ class local_encuestascdc_questionnaire_form extends moodleform
                 }
             }
             
-            $formselect = $mform->addElement('select', 'layout', get_string('questionnaire_report_layout', 'local_encuestascdc'), $cleanfiles);
+            $formselect = $mform->addElement('hidden', 'layout', 'document');
+            $formselect = $mform->setType('layout', PARAM_ALPHAEXT);
             
             $formselect = $mform->addElement('text', 'profesor1', get_string('profesor', 'local_encuestascdc') . ' 1');
             $mform->setType('profesor1', PARAM_RAW_TRIMMED);
@@ -95,13 +97,16 @@ class local_encuestascdc_questionnaire_form extends moodleform
             $formselect = $mform->addElement('text', 'coordinadora', get_string('coordinadora', 'local_encuestascdc'));
             $mform->setType('coordinadora', PARAM_RAW_TRIMMED);
             
-            $this->add_action_buttons(false, get_string('search', 'local_encuestascdc'));
+            $this->add_action_buttons(false, 'Ver reporte');
         }
     }
 
     public function validation($data, $files)
     {
         $errors = array();
+        if($data['qid'] < 1) {
+            $errors['qid'] = 'Debe seleccionar una encuesta';
+        }
         return $errors;
     }
 }
