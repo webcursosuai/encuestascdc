@@ -85,7 +85,7 @@ if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->
 
 // Listado de profesores dentro del curso
 $rolprofesor = $DB->get_record('role', array('shortname' => 'teacher'));
-$profesores = get_role_users($role->id, $context);
+$profesores = get_role_users($rolprofesor->id, $context);
 
 // Validación del objeto encuesta
 if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
@@ -277,6 +277,7 @@ ORDER BY position";
     $ultimaseccion = '';
     
     $profesores = 0;
+    
     // Revisamos cada conjunto de respuestas por pregunta
     foreach($respuestas as $respuesta)
     {
@@ -286,6 +287,13 @@ ORDER BY position";
             if($ultimaseccion !== '') {
                 $fullhtml .= "</div>";
             }
+            // Actualizamos última sección
+            $ultimaseccion = $respuesta->seccion;
+            // Agregamos a la lista de secciones
+            $secciones[] = $ultimaseccion;
+            // Clase para la escala de acuerdo al número de secciones
+            $classescala = "escala-" . count($secciones);
+            
             // Se agregar un break vacío
             $fullhtml .= "<div class='break-after'></div>";
             $fullhtml .= "<div class='multicol cols-2 seccioncompleta'>";
@@ -301,7 +309,7 @@ ORDER BY position";
 <table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente</div><table width='100%'><tr><td width='12.5%'>NS/NC</td><td width='12.5%'>Muy Malo</td><td width='12.5%'>Malo</td><td width='12.5%'>Medio Malo</td><td width='12.5%'>Medio</td><td width='12.5%'>Bueno</td><td width='12.5%'>Muy Bueno</td><td width='12.5%'>Excelente</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
                 </div>";
                 } else {
-                    $fullhtml .= '<div>WTF</div>';
+                    $fullhtml .= '<div>Formato no definido</div>';
                 }
             } else {
                 $fullhtml .= "<div class='tituloseccion break-before seccion'>". $respuesta->seccion . "</div>";
@@ -312,12 +320,6 @@ ORDER BY position";
             } elseif(stripos($respuesta->seccion, "COORDINACI") !== false) {
                 $fullhtml .= "<h2 class='nombreprofesor'>$coordinadora</h2>";
             }
-            // Actualizamos última sección
-            $ultimaseccion = $respuesta->seccion;
-            // Agregamos a la lista de secciones
-            $secciones[] = $ultimaseccion;
-            // Clase para la escala de acuerdo al número de secciones
-            $classescala = "escala-" . count($secciones);
         } elseif(stripos($respuesta->seccion, "PROFESOR") !== false && $profesores > 0 && substr($respuesta->opcion, 0, 2) === "a)") {
             $fullhtml .= "</div><div class='multicol cols-2 seccioncompleta'>";
             $fullhtml .= "<div class='encuesta break-before seccion'>
