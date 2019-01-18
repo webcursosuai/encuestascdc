@@ -137,20 +137,24 @@ if($layout) {
 // Se muestra la primera página con información del informe y general
 echo html_writer::start_div('primera-pagina');
 echo html_writer::start_div('logos');
-echo "<div class='uai-corporate-logo'><img width=200 height=67 src='img/logo-uai-corporate-no-transparente.png'></div>";
-echo "<div class='uai-logo'><img width=200 height=67 src='img/logo_uai_parche_negro.jpg'></div>";
+echo "<div class='uai-corporate-logo'><img width=200 height=67 src='img/logo-uai-corporate-no-transparente2.png'></div>";
 echo html_writer::end_div();
 
 echo $OUTPUT->heading('Encuesta de Satisfacción de Programas Corporativos', 1, array('class'=>'reporte_titulo'));
 echo html_writer::div('Informe de resultados', 'subtitulo');
 
-$fecharealizacion = date('d M Y', $questionnaire->opendate);
-$htmlgrupo = strtoupper(substr($coursesection->name, 0)) === 'G' ?
+$fecharealizacion = local_encuestascdc_util_mes_en_a_es(date('d F Y', $questionnaire->opendate));
+$htmlgrupo = strtoupper(substr($coursesection->name, 0, 1)) === 'G' ?
 "<tr>
     <td class='portada-item'>Grupo</td>
     <td class='portada-valor'>$coursesection->name</td>
 </tr>
 " : "";
+$htmlprofesor2 = $profesor2 === '' ? '' : "<tr>
+    <td class='portada-item'>Profesor 2</td>
+    <td class='portada-valor'>$profesor2</td>
+</tr>
+";
 echo "
 <table class='portada'>
 <tr>
@@ -169,6 +173,15 @@ $htmlgrupo
 <tr>
     <td class='portada-item'>Fecha realización</td>
     <td class='portada-valor'>$fecharealizacion</td>
+</tr>
+<tr>
+    <td class='portada-item'>Profesor 1</td>
+    <td class='portada-valor'>$profesor1</td>
+</tr>
+$htmlprofesor2
+<tr>
+    <td class='portada-item'>Coordinadora</td>
+    <td class='portada-valor'>$coordinadora</td>
 </tr>
 </table>
 ";
@@ -302,17 +315,17 @@ ORDER BY position";
             if($respuesta->type === "Rate (scale 1..5)") {
                 if($respuesta->length == 4) {
                     $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con las siguientes afirmaciones</div><table width='100%'><tr><td width='20%'>NS/NC</td><td width='20%'>Bajo</td><td width='20%'>Medio Bajo</td><td width='20%'>Medio Alto</td><td width='20%'>Alto</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div><table width='100%'><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
                 </div>";
                 } elseif($respuesta->length == 7) {
                     $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente</div><table width='100%'><tr><td width='12.5%'>NS/NC</td><td width='12.5%'>Muy Malo</td><td width='12.5%'>Malo</td><td width='12.5%'>Medio Malo</td><td width='12.5%'>Medio</td><td width='12.5%'>Bueno</td><td width='12.5%'>Muy Bueno</td><td width='12.5%'>Excelente</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:</div><table width='100%'><tr><td width='10%'>NS/NC</td><td width='10%'>1</td><td width='10%'>2</td><td width='10%'>3</td><td width='10%'>4</td><td width='10%'>5</td><td width='10%'>6</td><td width='10%'>7</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
                 </div>";
                 } else {
                     $fullhtml .= '<div>Formato no definido</div>';
                 }
             } else {
-                $fullhtml .= "<div class='tituloseccion break-before seccion'>". $respuesta->seccion . "</div>";
+                $fullhtml .= "<div class='tituloseccion break-before seccion'>". $respuesta->seccion . "<br/>&nbsp;</div>";
             }
             if(stripos($respuesta->seccion, "PROFESOR") !== false) {
                 $fullhtml .= "<h2 class='nombreprofesor'>$profesor1</h2>";
@@ -323,7 +336,7 @@ ORDER BY position";
         } elseif(stripos($respuesta->seccion, "PROFESOR") !== false && $profesores > 0 && substr($respuesta->opcion, 0, 2) === "a)") {
             $fullhtml .= "</div><div class='multicol cols-2 seccioncompleta'>";
             $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con las siguientes afirmaciones</div><table width='100%'><tr><td width='20%'>NS/NC</td><td width='20%'>Bajo</td><td width='20%'>Medio Bajo</td><td width='20%'>Medio Alto</td><td width='20%'>Alto</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>&nbsp;</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div><table width='100%'><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
                 </div>";
             $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
         }
@@ -445,7 +458,7 @@ function uol_tabla_respuesta_rank($respuesta) {
     
     // Resumen de promedio y número respuestas
     $resumenhtml = '<div class="promedio">' . $promedio . '</div><div class="numrespuestas hyphenate">Nº respuestas: ' . $total . '</div>';
-
+    $htmlpromedio = '<div class="promedio">' . $promedio . '</div>';
     $max = 0;
     foreach($values as $idx => $val) {
         if($val > $max) {
@@ -455,16 +468,15 @@ function uol_tabla_respuesta_rank($respuesta) {
     // HTML y clase CSS para tabla de datos
     $classtabla = "cel-".$respuesta->length;
     $tablahtml = '<table class="datos '.$classtabla.'"><tr>';
-    $percent = $max > 0 ? round(($valuesna / $max) * 33,0) + 17 : 0;
     $classinterno = '';
     if($valuesna == 0) {
         $valuesna = '-';
         $classinterno = 'cero';
     }
-    $tablahtml .= "<td><div class=\"circulo\"><div class=\"circulo-interno nivel0 $classinterno\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$valuesna</div></div></div></td>";
+    $tablahtml .= "<td><div class=\"circulo\"><div class=\"numero\">$valuesna</div></div></td>";
     $nivel = 1;
     foreach($values as $idx => $val) {
-        $percent = $max > 0 ? round(($val / $max) * 16,0) + 9 : 0;
+        $percent = $max > 0 ? round(($val / $max) * 13,0) + 7 : 0;
         $indexgradient = 1 + (10/$respuesta->length) * ($nivel - 1);
         $fill = "#" . $gradient[$indexgradient];
         $classinterno = '';
@@ -474,17 +486,17 @@ function uol_tabla_respuesta_rank($respuesta) {
             $fill = '#fff';
         }
         // $tablahtml .= "<td><div class=\"circulo\"><div class=\"circulo-interno nivel$nivel-$respuesta->length $classinterno\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$val</div></div></div></td>";
-        $tablahtml .= "<td><svg width='50' height='50'><circle cx='25' cy='25' r='$percent' stroke='none' fill='$fill' />
+        $tablahtml .= "<td><svg width='40' height='40'><circle cx='20' cy='20' r='$percent' stroke='none' fill='$fill' />
 <text font-size='12'
       fill='black'
       font-family='Verdana'
       text-anchor='middle'
       alignment-baseline='baseline'
-      x='25'
-      y='30'>$val</text></svg></td>";
+      x='20'
+      y='25'>$val</text></svg></td>";
         $nivel++;
     }
-    $tablahtml .= '</tr></table>';
+    $tablahtml .= '<td style="width:20%" class="promedio">'.$promedio.'</td></tr></table>';
     
     // Crea chart
     /*        ### Con esto saco frecuencias fácilmente
@@ -506,6 +518,6 @@ function uol_tabla_respuesta_rank($respuesta) {
      $width = $respuesta->length == 4 ? 400 : 450; */
     $titulografico = trim(str_ireplace(array('a)','b)','c)','d)','e)', 'f)', 'g)', 'h)', 'i)', 'j)'), '', $respuesta->opcion));
     $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td><td>'.$tablahtml.'</td></tr><tr class="trgrafico"><td class="tdgrafico">'. '</td><td>' .  $resumenhtml. '</td></tr></table>'; ### Se proyecta Chart
-    $charthtml = html_writer::div($charthtml,'encuesta');
+    $charthtml = html_writer::div($charthtml,'encuesta') . '<hr>';
     return $charthtml;
 }
