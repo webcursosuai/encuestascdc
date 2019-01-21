@@ -19,8 +19,8 @@ header {
 @page {
   size: letter;
   margin-top: 11mm;
-  margin-right: 11mm;
-  margin-left: 11mm;
+  margin-right: 10mm;
+  margin-left: 10mm;
   margin-bottom: 11mm;
 }
 .nombreprofesor {
@@ -48,12 +48,12 @@ header {
 	width: 100%;
 }
 .datos.cel-4 td {
-    width: 20%;
+    width: 16%;
     text-align: center;
     font-size: 12px;
 }
 .datos.cel-7 td {
-    width: 12.5%;
+    width: 10%;
     text-align: center;
     font-size: 12px;
 }
@@ -122,6 +122,9 @@ header {
 table, figure, img {
   page-break-inside: avoid;
 }
+hr {
+	margin: 0px;
+}
 .encuesta {
     margin-right:20px;
 }
@@ -133,7 +136,7 @@ table, figure, img {
 	border-bottom: 3px solid #EA4E1D;
 }
 .titulografico {
-	width: 50%;
+	width: 40%;
 	vertical-align: middle;
 	padding-right: 50px;
 }
