@@ -194,3 +194,9 @@ hr {
     -ms-hyphens: auto;
     page-break-after: always;
 }
+#page-local-encuestascdc-index #page-navbar, #page-local-encuestascdc-index .coursetitle, #page-local-encuestascdc-index .bor {
+    display: none;
+}
+#page-local-encuestascdc-index #page #page-content #region-main {
+	border: none;
+}
