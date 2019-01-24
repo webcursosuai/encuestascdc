@@ -1,5 +1,12 @@
 @charset "UTF-8";
 html, body, .main, .tabs, .tabbed-content { float: none; }
+body {
+    font-family: "Open Sans", sans-serif;
+    background-color: #fff;
+}
+#page.container-fluid {
+    padding: 0;
+}
 h1 {
     font-size: 16px;
     font-weight: bold;
@@ -51,11 +58,13 @@ header {
     width: 16%;
     text-align: center;
     font-size: 12px;
+    min-width: 41px;
 }
 .datos.cel-7 td {
     width: 10%;
     text-align: center;
     font-size: 12px;
+    min-width: 41px;
 }
 .circulo {
   border-radius: 50%;
@@ -174,7 +183,7 @@ hr {
     width: 100%;
     border-spacing: 0px;
     border-collapse: separate;
-    font-size: 16px;
+    font-size: 14px;
 }
 .portada td {
     border: 1px solid white;
