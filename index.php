@@ -24,6 +24,7 @@
  */
 require_once (dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once ('forms/questionnaire_form.php');
+require_once ('lib.php');
 
 // id del curso
 $courseid = required_param('id', PARAM_INT);
@@ -58,7 +59,7 @@ $PAGE->set_url('/local/encuestascdc/index.php');
 $PAGE->set_heading('Reporte de encuestas UAI Corporate');
 $PAGE->set_pagelayout('course');
 
-$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'POST');
+$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'GET');
 
 // Si no se ha seleccionado una encuesta aún, mostrar el formulario
 if(!$form->get_data()) {
@@ -72,10 +73,12 @@ if(!$form->get_data()) {
 $PAGE->set_pagelayout('print');
 // Header de la páginas
 echo $OUTPUT->header();
+echo '<link href="https://fonts.googleapis.com/css?family=Lato|Open+Sans|Ubuntu" rel="stylesheet">';
 
 // Parámetros necesarios para imprimir la encuesta
 $profesor1 = required_param('profesor1', PARAM_RAW_TRIMMED);
 $profesor2 = optional_param('profesor2', '', PARAM_RAW_TRIMMED);
+$profesor3 = optional_param('profesor3', '', PARAM_RAW_TRIMMED);
 $coordinadora = required_param('coordinadora', PARAM_RAW_TRIMMED);
 
 // Valida la categoría del curso
@@ -92,15 +95,15 @@ if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
     print_error('Encuesta inválida');
 }
 
-$partesnombre = explode('-',$questionnaire->name);
+preg_match('/^([^:]+):([^\-]+)-(.+)$/', $questionnaire->name, $partesnombre, PREG_OFFSET_CAPTURE);
 
-if(count($partesnombre) != 3) {
-    print_error('Nombre de encuesta inválida, debe contener dos guiones en el format A-B-C. Con B el nombre de la actividad, C el nombre del profesor y A bla bla.');
+if(count($partesnombre) != 4) {
+    print_error('Nombre de encuesta inválida, debe contener dos guiones en el format A:B-C. Con B el nombre de la actividad, C las iniciales del profesor y A el nombre de la encuesta.');
 }
 
-$nombrebla = $partesnombre[0];
-$nombreactividad = $partesnombre[1];
-$nombreprofesor = $partesnombre[2];
+$nombrebla = $partesnombre[1][0];
+$nombreactividad = $partesnombre[2][0];
+$nombreprofesor = $partesnombre[3][0];
 
 // Validación de tipo de respuesta rank
 if(!$questiontype = $DB->get_record('questionnaire_question_type', array('response_table'=>'response_rank'))) {
@@ -141,7 +144,11 @@ echo "<div class='uai-corporate-logo'><img width=200 height=67 src='img/logo-uai
 echo html_writer::end_div();
 
 echo $OUTPUT->heading('Encuesta de Satisfacción de Programas Corporativos', 1, array('class'=>'reporte_titulo'));
-echo html_writer::div('Informe de resultados', 'subtitulo');
+
+// Se obtienen los gráficos y las secciones de la encuesta
+list($grafico, $secciones, $totalalumnos) = uol_grafico_encuesta_rank($questionnaire->id, $module->id, $questiontype->typeid, $questiontypetext->id, $profesor1, $profesor2, $coordinadora);
+
+$portada = html_writer::div('Informe de resultados', 'subtitulo');
 
 $fecharealizacion = local_encuestascdc_util_mes_en_a_es(date('d F Y', $questionnaire->opendate));
 $htmlgrupo = strtoupper(substr($coursesection->name, 0, 1)) === 'G' ?
@@ -155,7 +162,12 @@ $htmlprofesor2 = $profesor2 === '' ? '' : "<tr>
     <td class='portada-valor'>$profesor2</td>
 </tr>
 ";
-echo "
+$htmlprofesor3 = $profesor3 === '' ? '' : "<tr>
+    <td class='portada-item'>Profesor 3</td>
+    <td class='portada-valor'>$profesor3</td>
+</tr>
+";
+$portada .= "
 <table class='portada'>
 <tr>
     <td class='portada-item'>Empresa</td>
@@ -179,21 +191,20 @@ $htmlgrupo
     <td class='portada-valor'>$profesor1</td>
 </tr>
 $htmlprofesor2
+$htmlprofesor3
 <tr>
     <td class='portada-item'>Coordinadora</td>
     <td class='portada-valor'>$coordinadora</td>
 </tr>
+<tr>
+    <td class='portada-item'>Número de alumnos</td>
+    <td class='portada-valor'>$totalalumnos</td>
+</tr>
 </table>
 ";
-// Listado de profesores
-$profesoreshtml = '';
-foreach($profesores as $profesor) {
-    $profesoreshtml .= $OUTPUT->heading($profesor->firstname . ' ' . $profesor->lastname, 5);
-}
-echo html_writer::end_div();
+$portada .= html_writer::end_div();
 
-// Se obtienen los gráficos y las secciones de la encuesta
-list($grafico, $secciones) = uol_grafico_encuesta_rank($questionnaire->id, $module->id, $questiontype->typeid, $questiontypetext->id, $profesor1, $profesor2, $coordinadora);
+echo $portada;
 
 // Se muestra la tabla de contenidos con las secciones
 echo uol_tabla_contenidos($secciones, 1);
@@ -221,8 +232,10 @@ echo $OUTPUT->footer();
  * @return string[]|string[][]
  */
 function uol_grafico_encuesta_rank(int $questionnaireid, int $moduleid, int $typerankid, int $typetextid, String $profesor1, String $profesor2, String $coordinadora) {
-    global $DB, $OUTPUT;
+    global $DB, $OUTPUT, $CFG;
     
+    $totalalumnos = 0;
+    $rankfield = $CFG->version < 2016120509 ? '' : 'value';
     // Query para respuestas
     $sql="
 SELECT qu.id,
@@ -233,7 +246,7 @@ SELECT qu.id,
 	q.content pregunta, 
 	qc.content opcion, 
 	q.length, 
-	group_concat(rr.rank separator '#') answers,
+	group_concat(rr.rank$rankfield separator '#') answers,
     q.position,
 	qt.type
 FROM
@@ -290,12 +303,13 @@ ORDER BY position";
     $ultimaseccion = '';
     
     $profesores = 0;
-    
+    $nuevaseccion = false;
     // Revisamos cada conjunto de respuestas por pregunta
     foreach($respuestas as $respuesta)
     {
     	// Si hay cambio de sección
         if($ultimaseccion !== $respuesta->seccion) {
+            $nuevaseccion = true;
         	// Se cierra div anterior (de sección)
             if($ultimaseccion !== '') {
                 $fullhtml .= "</div>";
@@ -315,11 +329,11 @@ ORDER BY position";
             if($respuesta->type === "Rate (scale 1..5)") {
                 if($respuesta->length == 4) {
                     $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div><table width='100%'><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
                 </div>";
                 } elseif($respuesta->length == 7) {
                     $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:</div><table width='100%'><tr><td width='10%'>NS/NC</td><td width='10%'>1</td><td width='10%'>2</td><td width='10%'>3</td><td width='10%'>4</td><td width='10%'>5</td><td width='10%'>6</td><td width='10%'>7</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
+<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:</div></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
                 </div>";
                 } else {
                     $fullhtml .= '<div>Formato no definido</div>';
@@ -338,16 +352,26 @@ ORDER BY position";
             $fullhtml .= "<div class='encuesta break-before seccion'>
 <table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>&nbsp;</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div><table width='100%'><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
                 </div>";
-            $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
+                if($profesores == 1) {
+                    $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
+                    $profesores++;
+                } else {
+                    $fullhtml .= "<h2 class='nombreprofesor'>$profesor3</h2>";
+                }
         }
         if($respuesta->type === "Rate (scale 1..5)") {
-            $fullhtml .= uol_tabla_respuesta_rank($respuesta);
+            $fullhtml .= uol_tabla_respuesta_rank($respuesta, $nuevaseccion);
         } elseif($respuesta->type === "Text Box") {
             $fullhtml .= uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinadora);
         }
+        $partes = explode("#", $respuesta->answers);
+        if(count($partes) > $totalalumnos) {
+            $totalalumnos = count($partes);
+        }
+        $nuevaseccion = false;
     }
     // Se retorna el html de gráficos y a lista de secciones
-    return array($fullhtml ."</div>", $secciones);
+    return array($fullhtml ."</div>", $secciones, $totalalumnos);
 }
 
 /**
@@ -401,7 +425,7 @@ function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinad
 </div>";
 }
 
-function uol_tabla_respuesta_rank($respuesta) {
+function uol_tabla_respuesta_rank($respuesta, $header = false) {
     $gradient = array(
         1 => "EF494F",
         2 => "E96946",
@@ -428,7 +452,7 @@ function uol_tabla_respuesta_rank($respuesta) {
     // Total de respuestas NA (para no considerar en el promedio)
     $totalna = 0;
     // Por cada rank posible (de 0 a length - 1)
-    for($i=$respuesta->length-1;$i>=-1;$i--) {
+    for($i=-1;$i<$respuesta->length;$i++) {
         // Inicializamos valores
         // Si es -1 es porque es NA (NS/NC No sabe, no contesta)
         if($i<0) {
@@ -468,6 +492,13 @@ function uol_tabla_respuesta_rank($respuesta) {
     // HTML y clase CSS para tabla de datos
     $classtabla = "cel-".$respuesta->length;
     $tablahtml = '<table class="datos '.$classtabla.'"><tr>';
+    if($header) {
+        if($respuesta->length == 7) {
+            $tablahtml .= "<tr><td width='10%'>NS/NC</td><td width='10%'>1</td><td width='10%'>2</td><td width='10%'>3</td><td width='10%'>4</td><td width='10%'>5</td><td width='10%'>6</td><td width='10%'>7</td><td width='20%'>Prom.</td></tr>";
+        } else {
+            $tablahtml .= "<tr><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr>";
+        }
+    }
     $classinterno = '';
     if($valuesna == 0) {
         $valuesna = '-';
@@ -517,7 +548,8 @@ function uol_tabla_respuesta_rank($respuesta) {
      $chart->set_xaxis($xaxis);
      $width = $respuesta->length == 4 ? 400 : 450; */
     $titulografico = trim(str_ireplace(array('a)','b)','c)','d)','e)', 'f)', 'g)', 'h)', 'i)', 'j)'), '', $respuesta->opcion));
-    $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td><td>'.$tablahtml.'</td></tr><tr class="trgrafico"><td class="tdgrafico">'. '</td><td>' .  $resumenhtml. '</td></tr></table>'; ### Se proyecta Chart
+    $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td><td>'.$tablahtml.'</td></tr>'.
+    '<tr class="trgrafico"><td class="tdgrafico">'. '</td><td>' .  $resumenhtml. '</td></tr></table>'; ### Se proyecta Chart
     $charthtml = html_writer::div($charthtml,'encuesta') . '<hr>';
     return $charthtml;
 }

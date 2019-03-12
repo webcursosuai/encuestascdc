@@ -94,6 +94,9 @@ class local_encuestascdc_questionnaire_form extends moodleform
             $formselect = $mform->addElement('text', 'profesor2', get_string('profesor', 'local_encuestascdc') . ' 2');
             $mform->setType('profesor2', PARAM_RAW_TRIMMED);
             
+            $formselect = $mform->addElement('text', 'profesor3', get_string('profesor', 'local_encuestascdc') . ' 3');
+            $mform->setType('profesor3', PARAM_RAW_TRIMMED);
+            
             $formselect = $mform->addElement('text', 'coordinadora', get_string('coordinadora', 'local_encuestascdc'));
             $mform->setType('coordinadora', PARAM_RAW_TRIMMED);
             
