@@ -257,7 +257,7 @@ FROM
 	INNER JOIN {questionnaire_question} q ON (q.surveyid = s.id and q.type_id = :typerankid and q.deleted = 'n')
 	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = :typerankid2)
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-	LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
+	LEFT JOIN {questionnaire_response} r ON (r.questionnaireid = s.id)
 	LEFT JOIN {questionnaire_response_rank} rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
 GROUP BY qu.id,c.id,s.id, q.id, qc.id
 UNION ALL
@@ -279,7 +279,7 @@ FROM
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
 	INNER JOIN {questionnaire_question} q ON (q.surveyid = s.id and q.type_id = :typetextid and q.deleted = 'n')
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-    LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
+    LEFT JOIN {questionnaire_response} r ON (r.questionnaireid = s.id)
     LEFT JOIN {questionnaire_response_text} rt ON (rt.response_id = r.id AND rt.question_id = q.id)
 GROUP BY qu.id,c.id,s.id, q.id
 ORDER BY position";
