@@ -45,6 +45,12 @@ class local_encuestascdc_questionnaire_form extends moodleform
             $mform->setType('id', PARAM_INT);
             $this->add_action_buttons(false, 'Buscar encuestas');
         } else {
+            if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
+                print_error("Curso inválido");
+            }
+            if(!$coursecat = $DB->get_record('course_categories', array('id'=>$course->category))) {
+                print_error("Curso con categoría inválida");
+            }
             $select = array();
             $select[0] = get_string('selectquestionnaire', 'local_encuestascdc');
             
@@ -99,6 +105,18 @@ class local_encuestascdc_questionnaire_form extends moodleform
             
             $formselect = $mform->addElement('text', 'coordinadora', get_string('coordinadora', 'local_encuestascdc'));
             $mform->setType('coordinadora', PARAM_RAW_TRIMMED);
+            
+            $formselect = $mform->addElement('text', 'empresa', get_string('empresa', 'local_encuestascdc'));
+            $mform->setType('empresa', PARAM_RAW_TRIMMED);
+            $mform->setDefault('empresa', $coursecat->name);
+            
+            $formselect = $mform->addElement('text', 'asignatura', get_string('asignatura', 'local_encuestascdc'));
+            $mform->setType('asignatura', PARAM_RAW_TRIMMED);
+            $mform->setDefault('asignatura', $course->fullname);
+            
+            $formselect = $mform->addElement('text', 'programa', get_string('programa', 'local_encuestascdc'));
+            $mform->setType('programa', PARAM_RAW_TRIMMED);
+            $mform->setDefault('programa', '');
             
             $this->add_action_buttons(false, 'Ver reporte');
         }
