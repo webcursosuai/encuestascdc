@@ -36,5 +36,8 @@ $string['questionnaire_report_layout']='Plantilla de reporte';
 $string['search']='Buscar';
 $string['profesor']='Profesor';
 $string['coordinadora']='Coordinadora';
+$string['empresa']='Empresa';
+$string['asignatura']='Asignatura';
+$string['programa']='Programa';
 // Permisos
 $string['encuestascdc:view'] = 'Ver reporte UAI Corporate';

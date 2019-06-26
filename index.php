@@ -80,6 +80,9 @@ $profesor1 = required_param('profesor1', PARAM_RAW_TRIMMED);
 $profesor2 = optional_param('profesor2', '', PARAM_RAW_TRIMMED);
 $profesor3 = optional_param('profesor3', '', PARAM_RAW_TRIMMED);
 $coordinadora = required_param('coordinadora', PARAM_RAW_TRIMMED);
+$empresa = required_param('empresa', PARAM_RAW_TRIMMED);
+$programa = required_param('programa', PARAM_RAW_TRIMMED);
+$asignatura = required_param('asignatura', PARAM_RAW_TRIMMED);
 
 // Valida la categoría del curso
 if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->category))) {
@@ -171,15 +174,15 @@ $portada .= "
 <table class='portada'>
 <tr>
     <td class='portada-item'>Empresa</td>
-    <td class='portada-valor'>$coursecategory->name</td>
+    <td class='portada-valor'>$empresa</td>
 </tr>
 <tr>
     <td class='portada-item'>Programa</td>
-    <td class='portada-valor'>$course->fullname</td>
+    <td class='portada-valor'>$programa</td>
 </tr>
 <tr>
     <td class='portada-item'>Asignatura-Actividad</td>
-    <td class='portada-valor'>$nombreactividad</td>
+    <td class='portada-valor'>$asignatura</td>
 </tr>
 $htmlgrupo
 <tr>
