@@ -59,7 +59,7 @@ $PAGE->set_url('/local/encuestascdc/index.php');
 $PAGE->set_heading('Reporte de encuestas UAI Corporate');
 $PAGE->set_pagelayout('course');
 
-$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'GET');
+$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'POST');
 
 // Si no se ha seleccionado una encuesta aún, mostrar el formulario
 if(!$form->get_data()) {
@@ -76,13 +76,21 @@ echo $OUTPUT->header();
 echo '<link href="https://fonts.googleapis.com/css?family=Lato|Open+Sans|Ubuntu" rel="stylesheet">';
 
 // Parámetros necesarios para imprimir la encuesta
-$profesor1 = required_param('profesor1', PARAM_RAW_TRIMMED);
-$profesor2 = optional_param('profesor2', '', PARAM_RAW_TRIMMED);
-$profesor3 = optional_param('profesor3', '', PARAM_RAW_TRIMMED);
+$profesor1 = optional_param('profesor1', 'Profesor 1', PARAM_RAW_TRIMMED);
+$profesor2 = optional_param('profesor2', 'Profesor 2', PARAM_RAW_TRIMMED);
+$profesor3 = optional_param('profesor3', 'Profesor 3', PARAM_RAW_TRIMMED);
 $coordinadora = required_param('coordinadora', PARAM_RAW_TRIMMED);
 $empresa = required_param('empresa', PARAM_RAW_TRIMMED);
 $programa = required_param('programa', PARAM_RAW_TRIMMED);
 $asignatura = required_param('asignatura', PARAM_RAW_TRIMMED);
+$destinatario = required_param('type', PARAM_ALPHA);
+$group = optional_param('group', 0, PARAM_INT);
+
+if($destinatario !== 'program-director') {
+    $profesor1 = 'Profesor 1';
+    $profesor2 = 'Profesor 2';
+    $profesor3 = 'Profesor 3';
+}
 
 // Valida la categoría del curso
 if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->category))) {
@@ -128,6 +136,9 @@ if(!$coursesection = $DB->get_record('course_sections', array('id'=>$coursemodul
     print_error('Sección de curso inválida');
 }
 
+$enrolledusers = get_enrolled_users($context, 'mod/assignment:submit', $group);
+$totalestudiantes = count($enrolledusers);
+
 // Se incluye el layout escogido
 ?>
 <style>
@@ -143,23 +154,30 @@ if($layout) {
 // Se muestra la primera página con información del informe y general
 echo html_writer::start_div('primera-pagina');
 echo html_writer::start_div('logos');
-echo "<div class='uai-corporate-logo'><img width=200 height=67 src='img/logo-uai-corporate-no-transparente2.png'></div>";
+echo "<div class='uai-corporate-logo'><img width=396 height='auto' src='img/logo-uai-corporate-no-transparente2.png'></div>";
 echo html_writer::end_div();
 
 echo $OUTPUT->heading('Encuesta de Satisfacción de Programas Corporativos', 1, array('class'=>'reporte_titulo'));
 
 // Se obtienen los gráficos y las secciones de la encuesta
-list($grafico, $secciones, $totalalumnos) = uol_grafico_encuesta_rank($questionnaire->id, $module->id, $questiontype->typeid, $questiontypetext->id, $profesor1, $profesor2, $coordinadora);
-
+list($grafico, $secciones, $totalalumnos) = uol_grafico_encuesta_rank($questionnaire->id, $module->id, $questiontype->typeid, $questiontypetext->id, $profesor1, $profesor2, $coordinadora, $group);
+$tasa = $totalestudiantes > 0 ? round(($totalalumnos / $totalestudiantes) * 100, 0) : 0;
 $portada = html_writer::div('Informe de resultados', 'subtitulo');
 
 $fecharealizacion = local_encuestascdc_util_mes_en_a_es(date('d F Y', $questionnaire->opendate));
-$htmlgrupo = strtoupper(substr($coursesection->name, 0, 1)) === 'G' ?
-"<tr>
-    <td class='portada-item'>Grupo</td>
-    <td class='portada-valor'>$coursesection->name</td>
-</tr>
-" : "";
+
+$htmlgrupo = '';
+if($group > 0) {
+    if(!$groupobj = $DB->get_record('groups', array('id'=>$group))) {
+        print_error('Invalid group');
+    }
+    
+    $htmlgrupo = "<tr>
+        <td class='portada-item'>Grupo</td>
+        <td class='portada-valor'>: $groupobj->name</td>
+    </tr>";    
+}
+
 $htmlprofesor2 = $profesor2 === '' ? '' : "<tr>
     <td class='portada-item'>Profesor 2</td>
     <td class='portada-valor'>$profesor2</td>
@@ -174,34 +192,42 @@ $portada .= "
 <table class='portada'>
 <tr>
     <td class='portada-item'>Empresa</td>
-    <td class='portada-valor'>$empresa</td>
+    <td class='portada-valor'>: $empresa</td>
 </tr>
 <tr>
     <td class='portada-item'>Programa</td>
-    <td class='portada-valor'>$programa</td>
+    <td class='portada-valor'>: $programa</td>
 </tr>
 <tr>
     <td class='portada-item'>Asignatura-Actividad</td>
-    <td class='portada-valor'>$asignatura</td>
+    <td class='portada-valor'>: $asignatura</td>
 </tr>
 $htmlgrupo
 <tr>
     <td class='portada-item'>Fecha realización</td>
-    <td class='portada-valor'>$fecharealizacion</td>
-</tr>
-<tr>
-    <td class='portada-item'>Profesor 1</td>
-    <td class='portada-valor'>$profesor1</td>
-</tr>
-$htmlprofesor2
-$htmlprofesor3
+    <td class='portada-valor'>: $fecharealizacion</td>
+</tr>";
+if($destinatario === 'program-director') {
+    $portada .= "
+    <tr>    
+        <td class='portada-item'>Profesor 1</td>
+        <td class='portada-valor'>: $profesor1</td>
+    </tr>
+    $htmlprofesor2
+    $htmlprofesor3";
+}
+$portada .= "
 <tr>
     <td class='portada-item'>Coordinadora</td>
-    <td class='portada-valor'>$coordinadora</td>
+    <td class='portada-valor'>: $coordinadora</td>
 </tr>
 <tr>
     <td class='portada-item'>Número de alumnos</td>
-    <td class='portada-valor'>$totalalumnos</td>
+    <td class='portada-valor'>: $totalestudiantes</td>
+</tr>
+<tr>
+    <td class='portada-item'>Tasa de respuesta</td>
+    <td class='portada-valor'>: $tasa%</td>
 </tr>
 </table>
 ";
@@ -234,11 +260,16 @@ echo $OUTPUT->footer();
  * @param int $typetextid id del tipo de pregunta texto
  * @return string[]|string[][]
  */
-function uol_grafico_encuesta_rank(int $questionnaireid, int $moduleid, int $typerankid, int $typetextid, String $profesor1, String $profesor2, String $coordinadora) {
+function uol_grafico_encuesta_rank(int $questionnaireid, int $moduleid, int $typerankid, int $typetextid, String $profesor1, String $profesor2, String $coordinadora, int $groupid = 0) {
     global $DB, $OUTPUT, $CFG;
     
     $totalalumnos = 0;
     $rankfield = $CFG->version < 2016120509 ? '' : 'value';
+    $groupsql = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid AND gm.userid = r.userid)
+WHERE gm.groupid is not null" : ""; 
+    $groupsql2 = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid2 AND gm.userid = r.userid)
+WHERE gm.groupid is not null" : ""; 
+
     // Query para respuestas
     $sql="
 SELECT qu.id,
@@ -255,13 +286,14 @@ SELECT qu.id,
 FROM
 	{questionnaire} qu
 	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid)
-	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid AND cm.instance = qu.id AND cm.visible = 1)
+	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid AND cm.instance = qu.id)
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
 	INNER JOIN {questionnaire_question} q ON (q.survey_id = s.id and q.type_id = :typerankid and q.deleted = 'n')
 	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = :typerankid2)
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
 	LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
 	LEFT JOIN {questionnaire_response_rank} rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
+    $groupsql
 GROUP BY qu.id,c.id,s.id, q.id, qc.id
 UNION ALL
 SELECT qu.id,
@@ -278,12 +310,13 @@ SELECT qu.id,
 FROM
 	{questionnaire} qu
 	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid2)
-	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid2 AND cm.instance = qu.id AND cm.visible = 1)
+	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid2 AND cm.instance = qu.id)
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
 	INNER JOIN {questionnaire_question} q ON (q.survey_id = s.id and q.type_id = :typetextid and q.deleted = 'n')
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
     LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
     LEFT JOIN {questionnaire_response_text} rt ON (rt.response_id = r.id AND rt.question_id = q.id)
+    $groupsql2
 GROUP BY qu.id,c.id,s.id, q.id
 ORDER BY position";
     
@@ -296,48 +329,91 @@ ORDER BY position";
         'moduleid2' => $moduleid,
         'typetextid' => $typetextid
     );
+    if($groupid > 0) {
+        $params['groupid'] = $groupid;
+        $params['groupid2'] = $groupid;
+    }
     // Todas las respuestas
     $respuestas = $DB->get_recordset_sql($sql, $params);
     // Arreglo con los nombres de secciones
     $secciones = Array();
     // El html que se devuelve en el primer parámetro
     $fullhtml = '';
+    // Html de preguntas abiertas
+    $openhtml = '';
     // Variable con la última sección utilizada, para identificar cambio de sección
     $ultimaseccion = '';
+    // Variable para contar preguntas cerradas dentro de una sección
+    $preguntascerradasultimaseccion = 0;
+
+    if(!$respuestas->valid()) {
+        return array("", array(), 0);
+    }
     
     $profesores = 0;
     $nuevaseccion = false;
+    $estadisticas_seccion = null;
     // Revisamos cada conjunto de respuestas por pregunta
     foreach($respuestas as $respuesta)
     {
     	// Si hay cambio de sección
         if($ultimaseccion !== $respuesta->seccion) {
             $nuevaseccion = true;
+            // Clase para la escala de acuerdo al número de secciones
+            $classescala = "escala-" . count($secciones);
         	// Se cierra div anterior (de sección)
             if($ultimaseccion !== '') {
-                $fullhtml .= "</div>";
+                if($estadisticas_seccion == null) {
+                    var_dump("Houston! We have a problem.");
+                }
+                $htmlstats = uol_tabla_estadisticas($estadisticas_seccion);
+                if($preguntascerradasultimaseccion > 0) {
+                    $fullhtml .= "</div><div class='promedios $classescala'>$htmlstats</div>";
+                } else {
+                    $fullhtml .= "</div>";
+                }
+                if($openhtml === '') {
+                    $fullhtml .= "</div></div>";
+                } else {
+                    $fullhtml .= "</div><div class='´preguntas-abiertas'>$openhtml</div></div>";
+                    $openhtml = '';
+                }
             }
+            $preguntascerradasultimaseccion=0;
+
             // Actualizamos última sección
             $ultimaseccion = $respuesta->seccion;
             // Agregamos a la lista de secciones
             $secciones[] = $ultimaseccion;
-            // Clase para la escala de acuerdo al número de secciones
-            $classescala = "escala-" . count($secciones);
+            // Estadísticas de la sección, al llamar con NULL se inicializa en 0.
+            $estadisticas_seccion = uol_actualiza_estadisticas(null);
             
             // Se agregar un break vacío
-            $fullhtml .= "<div class='break-after'></div>";
+            //$fullhtml .= "<div class='break-after'></div>";
             $fullhtml .= "<div class='multicol cols-2 seccioncompleta'>";
             
             // Partimos con un break antes del título y el título
             if($respuesta->type === "Rate (scale 1..5)") {
                 if($respuesta->length == 4) {
-                    $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
-                </div>";
+                    $fullhtml .= "
+                    <div class='encuesta break-before seccion'>
+                        <div class='row'>
+                            <div class='h4 col-md-6'>$respuesta->seccion</div>
+                            <div class='escala $classescala col-md-6'>
+                                <div class='tituloescala'>En una escala de 1 a 4, donde 1 es Bajo y 4 es Alto, indique su nivel de conformidad con las afirmaciones</div>
+                            </div>
+                        </div>
+                    </div>";
                 } elseif($respuesta->length == 7) {
-                    $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:</div></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
-                </div>";
+                    $fullhtml .= "
+                    <div class='encuesta break-before seccion'>
+                        <div class='row'>
+                            <div class='h4 col-md-6'>$respuesta->seccion</div>
+                            <div class='escala $classescala col-md-6'>
+                                <div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:</div>
+                            </div>
+                        </div>
+                    </div>";
                 } else {
                     $fullhtml .= '<div>Formato no definido</div>';
                 }
@@ -350,22 +426,51 @@ ORDER BY position";
             } elseif(stripos($respuesta->seccion, "COORDINACI") !== false) {
                 $fullhtml .= "<h2 class='nombreprofesor'>$coordinadora</h2>";
             }
+            $fullhtml .= "<div class='resultados'><div class='preguntas'>";
         } elseif(stripos($respuesta->seccion, "PROFESOR") !== false && $profesores > 0 && substr($respuesta->opcion, 0, 2) === "a)") {
             $fullhtml .= "</div><div class='multicol cols-2 seccioncompleta'>";
-            $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>&nbsp;</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div><table width='100%'><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
-                </div>";
-                if($profesores == 1) {
-                    $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
-                    $profesores++;
-                } else {
-                    $fullhtml .= "<h2 class='nombreprofesor'>$profesor3</h2>";
-                }
+            $fullhtml .= "
+<div class='encuesta break-before seccion'>
+    <table width='100%'>
+        <tr>
+            <td class='tituloseccion titulografico hyphenate'>&nbsp;</td>
+            <td>
+                <div class='escala $classescala'>
+                    <div class='tituloescala'>Nivel de conformidad con afirmaciones</div>
+                    <table width='100%'>
+                        <tr>
+                            <td width='16%'>NS/NC</td>
+                            <td width='16%'>Bajo</td>
+                            <td width='16%'>Medio Bajo</td>
+                            <td width='16%'>Medio Alto</td>
+                            <td width='16%'>Alto</td>
+                            <td width='20%'>Promedio</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        <tr class='trgrafico'>
+            <td class='tdgrafico'>'. '</td>
+            <td></td>
+        </tr>
+    </table>
+</div>";
+            if($profesores == 1) {
+                $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
+                $profesores++;
+            } else {
+                $fullhtml .= "<h2 class='nombreprofesor'>$profesor3</h2>";
+            }
+            $fullhtml .= "<div class='resultados'><div class='preguntas'>";
         }
         if($respuesta->type === "Rate (scale 1..5)") {
-            $fullhtml .= uol_tabla_respuesta_rank($respuesta, $nuevaseccion);
+            list($html, $estadisticas_nuevas) = uol_tabla_respuesta_rank($respuesta, $nuevaseccion);
+            $estadisticas_seccion = uol_actualiza_estadisticas($estadisticas_nuevas, $estadisticas_seccion);
+            $fullhtml .= $html;
+            $preguntascerradasultimaseccion++;
         } elseif($respuesta->type === "Text Box") {
-            $fullhtml .= uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinadora);
+            $openhtml .=  uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinadora);
         }
         $partes = explode("#", $respuesta->answers);
         if(count($partes) > $totalalumnos) {
@@ -373,10 +478,51 @@ ORDER BY position";
         }
         $nuevaseccion = false;
     }
+    $htmlstats = uol_tabla_estadisticas($estadisticas_seccion);
+    if($preguntascerradasultimaseccion > 0) {
+        $fullhtml .= "</div><div class='promedios $classescala'>$htmlstats</div>";
+    } else {
+        $fullhtml .= "</div>";
+    }
+
     // Se retorna el html de gráficos y a lista de secciones
-    return array($fullhtml ."</div>", $secciones, $totalalumnos);
+    return array($fullhtml ."</div><div class='´preguntas-abiertas'>$openhtml</div></div>", $secciones, $totalalumnos);
 }
 
+function uol_actualiza_estadisticas($estadisticas_nuevas, $estadisticas = NULL) {
+    // Estadísticas de la sección
+    $estadisticas_seccion = new stdClass();
+    $estadisticas_seccion->min = 0;
+    $estadisticas_seccion->max = 0;
+    $estadisticas_seccion->numrespuestas = 0;
+    $estadisticas_seccion->promedio = 0;
+
+    if($estadisticas_nuevas == NULL) {
+        return $estadisticas_seccion;
+    }
+    
+    $estadisticas_seccion->min = $estadisticas->min == 0 ? $estadisticas_nuevas->promedio : min($estadisticas->min,$estadisticas_nuevas->min);
+    $estadisticas_seccion->max = max($estadisticas->max,$estadisticas_nuevas->max);
+    $estadisticas_seccion->numrespuestas = $estadisticas->numrespuestas + $estadisticas_nuevas->numrespuestas;
+    $estadisticas_seccion->promedio = 
+        ($estadisticas->promedio * $estadisticas->numrespuestas + 
+        $estadisticas_nuevas->promedio * $estadisticas_nuevas->numrespuestas)
+        / ($estadisticas->numrespuestas + $estadisticas_nuevas->numrespuestas);
+        
+    return $estadisticas_seccion;
+}
+function uol_tabla_estadisticas($estadisticas) {
+    $promedio = round($estadisticas->promedio, 1);
+    $html = "
+    <div class='estadisticas-seccion'>
+        <div class='maximo'><ul>
+        <li>Máximo: $estadisticas->max</li>
+        <li>Mínimo: $estadisticas->min</li>
+        <li>Promedio: $promedio</li></ul>        </div>
+    </div>
+    ";
+    return $html;
+}
 /**
  * Crea una tabla con contenidos dada una lista de secciones. Puede marcar una sección como la activa.
  * 
@@ -405,7 +551,8 @@ function uol_tabla_contenidos(array $secciones, int $activo) {
 function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinadora) {
     $answers = explode('#',$respuesta->answers);
     $numanswers = count($answers);
-    $answers = implode("\n", $answers);
+    $answers = "- " . implode(" (sic) \n- ", $answers) . " (SIC)";
+    $answers = strtoupper(str_replace(array('á','é','í','ó','ú','ñ'), array('Á','É','Í','Ó','Ú','Ñ'), $answers));
     $pregunta = $respuesta->pregunta;
     if(stripos($respuesta->pregunta, "Profesor 1") !== false) {
         $pregunta = str_replace("Profesor 1", $profesor1, $pregunta);
@@ -422,7 +569,7 @@ function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinad
             <td class='titulografico'>$pregunta</td>
         </tr>
         <tr>
-            <td><textarea class='comentarios' name='text$respuesta->id' rows=$numanswers>$answers</textarea></td>
+            <td><textarea class='comentarios' name='text$respuesta->id' rows=$numanswers disabled>$answers</textarea></td>
         </tr>
     </table>
 </div>";
@@ -487,9 +634,13 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
     $resumenhtml = '<div class="promedio">' . $promedio . '</div><div class="numrespuestas hyphenate">Nº respuestas: ' . $total . '</div>';
     $htmlpromedio = '<div class="promedio">' . $promedio . '</div>';
     $max = 0;
+    $min = 0;
     foreach($values as $idx => $val) {
         if($val > $max) {
             $max = $val;
+        }
+        if($val < $min) {
+            $min = $val;
         }
     }
     // HTML y clase CSS para tabla de datos
@@ -550,9 +701,15 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
      $xaxis->set_stepsize(1);
      $chart->set_xaxis($xaxis);
      $width = $respuesta->length == 4 ? 400 : 450; */
+     $tablahtml = '&nbsp;';
     $titulografico = trim(str_ireplace(array('a)','b)','c)','d)','e)', 'f)', 'g)', 'h)', 'i)', 'j)'), '', $respuesta->opcion));
-    $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td><td>'.$tablahtml.'</td></tr>'.
+    $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td></tr>'.
     '<tr class="trgrafico"><td class="tdgrafico">'. '</td><td>' .  $resumenhtml. '</td></tr></table>'; ### Se proyecta Chart
-    $charthtml = html_writer::div($charthtml,'encuesta') . '<hr>';
-    return $charthtml;
+    $charthtml = html_writer::div($charthtml,'encuesta');
+    $stats = new stdClass();
+    $stats->min = $promedio;
+    $stats->max = $promedio;
+    $stats->numrespuestas = $total;
+    $stats->promedio = $promedio;
+    return array($charthtml, $stats);
 }

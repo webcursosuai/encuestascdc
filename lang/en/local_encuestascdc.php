@@ -27,17 +27,32 @@
 $string['pluginname']='UAI Corporate';
 
 // Reporte encuestas CDC
-$string['questionnairereport']='Reporte encuesta';
-$string['questionnaire']='Encuesta';
-$string['selectquestionnaire']='Seleccione encuesta';
-$string['questionnaire_help']='Seleccione la encuesta para la cual se generará el reporte';
-$string['questionnaire_report_layout']='Plantilla de reporte';
+$string['questionnairereport']='Survey report';
+$string['questionnaire']='Survey';
+$string['selectquestionnaire']='Select survey';
+$string['questionnaire_help']='Select the survey that will be used to generate the report';
+$string['questionnaire_report_layout']='Report template';
+$string['questionnaire_report_layout_help']='The template that willbe used to generate the report, there are docment and presentation layouts';
 // Form
-$string['search']='Buscar';
-$string['profesor']='Profesor';
-$string['coordinadora']='Coordinadora';
-$string['empresa']='Empresa';
-$string['asignatura']='Asignatura';
-$string['programa']='Programa';
+$string['search']='Search';
+$string['profesor']='Lecturer';
+$string['profesores']='Lecturers';
+$string['coordinadora']='Coordinator';
+$string['empresa']='Company';
+$string['asignatura']='Course';
+$string['programa']='Program';
+$string['questionnaire_type']='Report type';
+$string['questionnaire_type_help']='The type report to generate, the Client type has lecturers\' info anonymized, while the Program director is visible.';
+$string['program-director']='Program director';
+$string['client']='Client';
+$string['selecttype']='Select type';
+$string['selectlayout']='Select layout';
+$string['selectreporttype']='Select report type';
+$string['reportcourse']='Course reporte';
+$string['reportprogram']='Program report';
+$string['reporttype']='Report type';
+$string['reporttype_help']='Select the report type you need, it can be a single course or several course in a program';
+$string['group']='Group';
+$string['group_help']='Select the group of students you want to include in the report';
 // Permisos
-$string['encuestascdc:view'] = 'Ver reporte UAI Corporate';
+$string['encuestascdc:view'] = 'See UAI Corporate report';

@@ -25,13 +25,15 @@ header {
 }
 @page {
   size: letter;
-  margin-top: 11mm;
+  margin-top: 8mm;
   margin-right: 10mm;
   margin-left: 10mm;
-  margin-bottom: 11mm;
+  margin-bottom: 8mm;
 }
 .nombreprofesor {
     font-size: 16px;
+    margin-top: 12px;
+    font-weight: bold;
 }
 .comentarios {
 	font-size: 12px;
@@ -104,6 +106,9 @@ header {
     height: 67px;
     float: left;
 }
+#page-local-encuestascdc-index #page {
+    margin-top:0px;
+}
 .uai-logo {
     width: 200px;
     height: 67px;
@@ -112,7 +117,7 @@ header {
 .reporte_titulo {
     font-weight: bold;
     width: 100%;
-    font-size: 16px;
+    font-size: 22px;
     color: #666;
     padding: 5px;
     text-transform: uppercase;
@@ -145,11 +150,47 @@ hr {
 	border-bottom: 3px solid #EA4E1D;
 }
 .titulografico {
-	width: 40%;
+	width: 80%;
 	vertical-align: middle;
 	padding-right: 50px;
 }
-.promedio {font-size: 16px; font-weight: bold;}
+.resultados {
+    display: flex;
+}
+.preguntas {
+    display:inline;
+    min-width: 70%;
+}
+.cierre-seccion {
+    display:inline;
+    min-width: 50%;
+}
+.preguntas .encuesta {
+    margin-bottom: 1px;
+    border-bottom: 1px solid #ddd;
+}
+.promedios {
+    display: flex;
+    width: 100%;
+}
+.maximo , .minimo, .promedio {
+    text-align: center;
+}
+.estadisticas-seccion {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: auto;    
+}
+.estadisticas-seccion ul {
+    margin-bottom: 0px;
+}
+.estadisticas-seccion div {
+    margin-right: 1em;
+/*    margin-top: auto;
+    margin-bottom: auto;*/
+    width: 100%;
+}
 .numrespuestas {font-size: 12px;}
 .escala {
     font-size: 1em;
