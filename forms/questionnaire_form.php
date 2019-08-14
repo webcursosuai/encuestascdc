@@ -23,7 +23,6 @@
  * @copyright 2018 Universidad Adolfo Ibáñez
  */
 require_once ($CFG->libdir . '/formslib.php');
-require_once ($CFG->libdir . '/coursecatlib.php');
 
 class local_encuestascdc_questionnaire_form extends moodleform
 {

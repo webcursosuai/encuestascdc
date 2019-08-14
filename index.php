@@ -288,10 +288,10 @@ FROM
 	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid)
 	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid AND cm.instance = qu.id)
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
-	INNER JOIN {questionnaire_question} q ON (q.survey_id = s.id and q.type_id = :typerankid and q.deleted = 'n')
+	INNER JOIN {questionnaire_question} q ON (q.surveyid = s.id and q.type_id = :typerankid and q.deleted = 'n')
 	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = :typerankid2)
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-	LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
+	LEFT JOIN {questionnaire_response} r ON (r.questionnaireid = qu.id)
 	LEFT JOIN {questionnaire_response_rank} rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
     $groupsql
 GROUP BY qu.id,c.id,s.id, q.id, qc.id
@@ -312,9 +312,9 @@ FROM
 	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid2)
 	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid2 AND cm.instance = qu.id)
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
-	INNER JOIN {questionnaire_question} q ON (q.survey_id = s.id and q.type_id = :typetextid and q.deleted = 'n')
+	INNER JOIN {questionnaire_question} q ON (q.surveyid = s.id and q.type_id = :typetextid and q.deleted = 'n')
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-    LEFT JOIN {questionnaire_response} r ON (r.survey_id = s.id)
+    LEFT JOIN {questionnaire_response} r ON (r.questionnaireid = qu.id)
     LEFT JOIN {questionnaire_response_text} rt ON (rt.response_id = r.id AND rt.question_id = q.id)
     $groupsql2
 GROUP BY qu.id,c.id,s.id, q.id
@@ -428,34 +428,19 @@ ORDER BY position";
             }
             $fullhtml .= "<div class='resultados'><div class='preguntas'>";
         } elseif(stripos($respuesta->seccion, "PROFESOR") !== false && $profesores > 0 && substr($respuesta->opcion, 0, 2) === "a)") {
+            $htmlstats = uol_tabla_estadisticas($estadisticas_seccion);
+            if($preguntascerradasultimaseccion > 0) {
+                $fullhtml .= "</div><div class='promedios $classescala'>$htmlstats</div>";
+            } else {
+                $fullhtml .= "</div>";
+            }
+            if($openhtml === '') {
+                $fullhtml .= "</div></div>";
+            } else {
+                $fullhtml .= "</div><div class='´preguntas-abiertas'>$openhtml</div></div>";
+                $openhtml = '';
+            }
             $fullhtml .= "</div><div class='multicol cols-2 seccioncompleta'>";
-            $fullhtml .= "
-<div class='encuesta break-before seccion'>
-    <table width='100%'>
-        <tr>
-            <td class='tituloseccion titulografico hyphenate'>&nbsp;</td>
-            <td>
-                <div class='escala $classescala'>
-                    <div class='tituloescala'>Nivel de conformidad con afirmaciones</div>
-                    <table width='100%'>
-                        <tr>
-                            <td width='16%'>NS/NC</td>
-                            <td width='16%'>Bajo</td>
-                            <td width='16%'>Medio Bajo</td>
-                            <td width='16%'>Medio Alto</td>
-                            <td width='16%'>Alto</td>
-                            <td width='20%'>Promedio</td>
-                        </tr>
-                    </table>
-                </div>
-            </td>
-        </tr>
-        <tr class='trgrafico'>
-            <td class='tdgrafico'>'. '</td>
-            <td></td>
-        </tr>
-    </table>
-</div>";
             if($profesores == 1) {
                 $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
                 $profesores++;
