@@ -24,7 +24,6 @@
  */
 defined('MOODLE_INTERNAL') || die();
 global $PAGE, $CFG;
-require_once ($CFG->libdir . '/coursecatlib.php');
 
 if (! during_initial_install()) { // do not use during installation
     $frontpagecontext = context_course::instance(SITEID);

@@ -8,7 +8,6 @@
 */
 
 require_once ($CFG->libdir . '/formslib.php');
-require_once ($CFG->libdir . '/coursecatlib.php');
 
 class local_encuestascdc_login_form extends moodleform {
 

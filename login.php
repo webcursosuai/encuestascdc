@@ -81,6 +81,7 @@ echo "
     width: 100%;
     text-align: center;
 	border-radius: 3px;
+    margin-top: 6px;
 }
 .status button {
 	background-color: #ff4c00;
@@ -94,6 +95,11 @@ echo "
 }
 img {
 	margin-bottom: 5px;
+}
+.status-contestada, .status-cerrada {
+    font-size: 1.5em;
+    font-weight: bold;
+    padding: 5px !important;
 }
 </style>";
 
@@ -128,38 +134,45 @@ if ($mform->get_data ()) {
 			    echo $OUTPUT->notification('Estudiante no tiene encuestas en sus cursos', 'notify-error');
 			    echo $OUTPUT->single_button($url, 'Volver');
 			} else {
+			    $htmlquestionnaires = array();
 				$teacherrole = $DB->get_record_sql('SELECT * FROM {role} WHERE archetype = :archetype ORDER BY id ASC LIMIT 1', array('archetype'=>'editingteacher'));
 				foreach($questionnaires as $questionnaire) {
 				    $url = new moodle_url("/local/encuestascdc/login.php", array("qid"=>$questionnaire->coursemodule, "uid"=>$user->id, "pwd"=>$pwd));
-				    $htmlsummary = '';
+				    $html = '';
 				    $course = $courses[intval($questionnaire->course)];
 				    $coursecontext = context_course::instance($course->id);
 				    $teachers = get_users_from_role_on_context($teacherrole, $coursecontext);
-				    $htmlsummary .= html_writer::start_tag('h5');
-				    $htmlsummary .= $course->fullname;
-				    $htmlsummary .= html_writer::end_tag('h5');
-					$htmlsummary .= html_writer::start_tag('p');
+				    $html .= html_writer::start_tag('h5');
+				    $html .= $course->fullname;
+				    $html .= html_writer::end_tag('h5');
+				    $html .= html_writer::start_tag('div');
 				    foreach($teachers as $teacher) {
 				    	$t = $DB->get_record('user', array('id'=>$teacher->userid));
-					    $htmlsummary .= $t->firstname . " " . $t->lastname . "<br/>";
+				    	$html .= "Prof: " . $t->firstname . " " . $t->lastname . "<br/>";
 				    }
-				    $htmlsummary .= $questionnaire->name;
-				    $htmlsummary .= html_writer::end_tag('p');
-				    $html = $htmlsummary;
+				    $html .= $questionnaire->name;
+				    $html .= html_writer::end_tag('div');
+				    $iscomplete = 'n';
 			        if ($responses = questionnaire_get_user_responses($questionnaire->id, $user->id, false)) {
 			            foreach ($responses as $response) {
 			                if ($response->complete == 'y') {
-			                    $html .= $OUTPUT->box('<i class="fa fa-check" aria-hidden="true"> Contestada</i>', 'alert-success status');
+			                    $html .= $OUTPUT->box('<i class="fa fa-check" aria-hidden="true"></i> Contestada', 'alert-success status status-contestada');
+			                    $iscomplete = 'y';
 			                    break;
 			                } else {
 			                    $html .=  $OUTPUT->box($OUTPUT->single_button($url, 'Continuar'), 'status');
 			                }
 			            }
+			        } elseif($questionnaire->closedate < time()) {
+			            $iscomplete = 'z';
+			            $html .= $OUTPUT->box('<i class="fa fa-ban" aria-hidden="true"></i> Cerrada', 'alert-warning status status-cerrada');
 			        } else {
-			            $html .=  $OUTPUT->box($OUTPUT->single_button($url, 'Contestar'), 'status');
+			            $html .= $OUTPUT->single_button($url, 'Contestar', 'post', array('class'=>'status'));
 			        }
-				    echo $OUTPUT->box($html, 'questionnaire');
+				    $htmlquestionnaires[$iscomplete . $questionnaire->closedate] = $OUTPUT->box($html, 'questionnaire');
 				}
+				ksort($htmlquestionnaires);
+				echo implode('', $htmlquestionnaires);
 			}
 		}
 	}
@@ -167,3 +180,4 @@ if ($mform->get_data ()) {
 	$mform->display ();
 }
 echo $OUTPUT->footer ();
+
