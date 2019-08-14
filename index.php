@@ -262,9 +262,10 @@ echo $OUTPUT->footer();
  */
 function uol_grafico_encuesta_rank(int $questionnaireid, int $moduleid, int $typerankid, int $typetextid, String $profesor1, String $profesor2, String $coordinadora, int $groupid = 0) {
     global $DB, $OUTPUT, $CFG;
-    
     $totalalumnos = 0;
-    $rankfield = $CFG->version < 2016120509 ? '' : 'value';
+    $rankfield = intval($CFG->version) < 2016120509 ? '' : 'value';
+    $surveyfield = intval($CFG->version) < 2019052000 ? 'survey_id' : 'surveyid';
+    $responseonclause = intval($CFG->version) < 2019052000 ? 'r.survey_id = s.id' : 'r.questionnaireid = qu.id';
     $groupsql = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid AND gm.userid = r.userid)
 WHERE gm.groupid is not null" : ""; 
     $groupsql2 = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid2 AND gm.userid = r.userid)
@@ -288,10 +289,10 @@ FROM
 	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid)
 	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid AND cm.instance = qu.id)
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
-	INNER JOIN {questionnaire_question} q ON (q.surveyid = s.id and q.type_id = :typerankid and q.deleted = 'n')
+	INNER JOIN {questionnaire_question} q ON (q.$surveyfield = s.id and q.type_id = :typerankid and q.deleted = 'n')
 	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = :typerankid2)
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-	LEFT JOIN {questionnaire_response} r ON (r.questionnaireid = qu.id)
+	LEFT JOIN {questionnaire_response} r ON ($responseonclause)
 	LEFT JOIN {questionnaire_response_rank} rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
     $groupsql
 GROUP BY qu.id,c.id,s.id, q.id, qc.id
@@ -312,9 +313,9 @@ FROM
 	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid2)
 	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid2 AND cm.instance = qu.id)
 	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
-	INNER JOIN {questionnaire_question} q ON (q.surveyid = s.id and q.type_id = :typetextid and q.deleted = 'n')
+	INNER JOIN {questionnaire_question} q ON (q.$surveyfield = s.id and q.type_id = :typetextid and q.deleted = 'n')
     INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-    LEFT JOIN {questionnaire_response} r ON (r.questionnaireid = qu.id)
+    LEFT JOIN {questionnaire_response} r ON ($responseonclause)
     LEFT JOIN {questionnaire_response_text} rt ON (rt.response_id = r.id AND rt.question_id = q.id)
     $groupsql2
 GROUP BY qu.id,c.id,s.id, q.id
