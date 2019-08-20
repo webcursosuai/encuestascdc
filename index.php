@@ -83,7 +83,7 @@ $coordinadora = required_param('coordinadora', PARAM_RAW_TRIMMED);
 $empresa = required_param('empresa', PARAM_RAW_TRIMMED);
 $programa = required_param('programa', PARAM_RAW_TRIMMED);
 $asignatura = required_param('asignatura', PARAM_RAW_TRIMMED);
-$destinatario = required_param('type', PARAM_ALPHA);
+$destinatario = required_param('type', PARAM_RAW_TRIMMED);
 $group = optional_param('group', 0, PARAM_INT);
 
 if($destinatario !== 'program-director') {
