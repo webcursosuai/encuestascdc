@@ -30,6 +30,10 @@ header {
   margin-left: 10mm;
   margin-bottom: 8mm;
 }
+.endreport {
+    break-after: always;
+    page-break-after: always;
+}
 .nombreprofesor {
     font-size: 16px;
     margin-top: 12px;
@@ -42,61 +46,16 @@ header {
     box-sizing: border-box;
     resize: vertical;
 }
+.row-comentarios {
+}
+.seccioncompleta .row {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
 @media print {
 	.comentarios {
 		resize: none;
 	}
-}
-.datos {
-	margin-left: auto;
-}
-.datos.cel-4 {
-	width: 100%;
-}
-.datos.cel-7 {
-	width: 100%;
-}
-.datos.cel-4 td {
-    width: 16%;
-    text-align: center;
-    font-size: 12px;
-    min-width: 41px;
-}
-.datos.cel-7 td {
-    width: 10%;
-    text-align: center;
-    font-size: 12px;
-    min-width: 41px;
-}
-.circulo {
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  margin-right: auto;
-}
-.circulo-interno {
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  margin-right: auto;  
-}
-.numero {
-	vertical-align: middle;
-	margin: 0px;
-	margin-left: auto;
-	margin-right: auto;
-}
-.cero {
-    border: none;
-    background-color: transparent;
-}
-.trgrafico {
-	display: none;
 }
 .logos {
 	height: 60px;
@@ -127,7 +86,6 @@ header {
     display: block;
     position: relative;
     clear: both;
-    margin-top: 1cm;
 }
 .break-after {
     display: block;
@@ -147,6 +105,8 @@ hr {
 	font-weight: bold;
 }
 .seccion {
+    padding-top: 0.5cm;
+    padding-bottom: 0.5cm;
 	border-bottom: 3px solid #EA4E1D;
 }
 .titulografico {
@@ -157,15 +117,23 @@ hr {
 .resultados {
     display: flex;
 }
-.preguntas {
-    display:inline;
-    min-width: 70%;
+.row-questions {
+    display: flex;
+    flex-wrap: wrap;
+}
+.estadisticas-seccion, .preguntas {
+    display:flex;
+    flex-direction: column;
 }
 .cierre-seccion {
     display:inline;
     min-width: 50%;
 }
-.preguntas .encuesta {
+.preguntas ul {
+    list-style: none;
+    margin-bottom: 0px;
+}
+.preguntas li {
     margin-bottom: 1px;
     border-bottom: 1px solid #ddd;
 }
@@ -179,11 +147,12 @@ hr {
 .estadisticas-seccion {
     display: flex;
     align-items: center;
-    margin-left: auto;
-    margin-right: auto;    
 }
 .estadisticas-seccion ul {
-    margin-bottom: 0px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 .estadisticas-seccion div {
     margin-right: 1em;

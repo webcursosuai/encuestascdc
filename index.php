@@ -35,6 +35,8 @@ if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
     print_error('Curso inválido');
 }
 
+$url = new moodle_url('/local/encuestascdc/index.php', array('id'=>$courseid));
+
 // El usuario debe estar logueado
 require_login($course);
 
@@ -44,6 +46,7 @@ require_capability('local/encuestascdc:view', $context);
 
 // Id de la encuesta
 $qid = optional_param('qid', 0, PARAM_INT);
+$mqid = isset($_REQUEST['mqid']) ? $_REQUEST['mqid'] : array();
 $layout = optional_param('layout', null, PARAM_ALPHA);
 $profesor1 = optional_param('profesor1', 'Profesor 1', PARAM_RAW_TRIMMED);
 $profesor2 = optional_param('profesor2', 'Profesor 2', PARAM_RAW_TRIMMED);
@@ -53,16 +56,12 @@ $empresa = optional_param('empresa', 'Empresa', PARAM_RAW_TRIMMED);
 $programa = optional_param('programa', 'Programa', PARAM_RAW_TRIMMED);
 $asignatura = optional_param('asignatura', 'Asignatura', PARAM_RAW_TRIMMED);
 $destinatario = optional_param('type', 'program-director', PARAM_RAW_TRIMMED);
+$tiporeporte = optional_param('reporttype', 'course', PARAM_RAW_TRIMMED);
 $group = optional_param('group', 0, PARAM_INT);
-
-// Validación de instalación del módulo questionnaire
-if(!$module = $DB->get_record('modules', array('name'=>'questionnaire'))) {
-    print_error('Módulo questionnaire no está instalado');
-}
 
 // Configuración de página
 $PAGE->set_context($context);
-$PAGE->set_url('/local/encuestascdc/index.php');
+$PAGE->set_url($url);
 $PAGE->set_heading('Reporte de encuestas UAI Corporate');
 $PAGE->set_pagelayout('course');
 
@@ -88,7 +87,7 @@ $rolgestor = $DB->get_record('role', array('shortname' => 'manager'));
 $gestores = get_role_users($rolgestor->id, $context, true);
 
 $teachers = array();
-if($destinatario !== 'program-director') {
+if($destinatario !== 'program-director' && $destinatario !== 'teacher') {
     $teachers[1] = 'Profesor 1';
     $teachers[2] = 'Profesor 2';
     $teachers[3] = 'Profesor 3';
@@ -107,18 +106,8 @@ foreach($gestores as $gestor) {
     $i++;
 }
 
-// Validación de tipo de respuesta rank
-if(!$questiontype = $DB->get_record('questionnaire_question_type', array('response_table'=>'response_rank'))) {
-	print_error('Tipo de pregunta rank no instalada');
-}
-
-// Validación de tipo de respuesta texto
-if(!$questiontypetext = $DB->get_record('questionnaire_question_type', array('response_table'=>'response_text', 'type'=>'Text Box'))) {
-    print_error('Tipo de pregunta Text Box no instalada');
-}
-
 $form = new local_encuestascdc_questionnaire_form(null, 
-    array('course'=>$courseid, 'module'=>$module->id, 'teachers'=>$teachers, 'managers'=>$managers, 'categories'=>$categories), 'POST');
+    array('course'=>$courseid, 'teachers'=>$teachers, 'managers'=>$managers, 'categories'=>$categories), 'POST');
 
 // Si no se ha seleccionado una encuesta aún, mostrar el formulario
 if(!$form->get_data()) {
@@ -135,18 +124,19 @@ echo $OUTPUT->header();
 echo '<link href="https://fonts.googleapis.com/css?family=Lato|Open+Sans|Ubuntu" rel="stylesheet">';
 
 // Validación del objeto encuesta
-if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
-    print_error('Encuesta inválida');
-}
-
-// Validación del objeto coursemodule
-if(!$coursemodule = $DB->get_record('course_modules', array('instance'=>$qid,'module'=>$module->id))) {
-    print_error('Módulo de curso inválido');
-}
-
-// Validación del objeto course section
-if(!$coursesection = $DB->get_record('course_sections', array('id'=>$coursemodule->section))) {
-    print_error('Sección de curso inválida');
+if($qid > 0) {
+    if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
+        print_error('Encuesta inválida');
+    }
+    $questionnaires = array($questionnaire->id => $questionnaire);
+} elseif(count($mqid) > 0) {
+    list($insql, $inparams) = $DB->get_in_or_equal($mqid);
+    $sql = "SELECT * FROM {bugtracker_issues} WHERE status $insql";
+    if(!$questionnaires = $DB->get_records_sql('SELECT * FROM {questionnaire} q WHERE id ' . $insql, $inparams)) {
+        print_error('Ids de encuestas inválidos');
+    }
+} else {
+    print_error('Acceso no autorizado');
 }
 
 $enrolledusers = get_enrolled_users($context, 'mod/assignment:submit', $group);
@@ -160,95 +150,51 @@ if($layout) {
     echo '</style>';
 }
 
-// Se muestra la primera página con información del informe y general
-echo html_writer::start_div('primera-pagina');
-echo html_writer::start_div('logos');
-echo "<div class='uai-corporate-logo'><img width=396 height='auto' src='img/logo-uai-corporate-no-transparente2.png'></div>";
-echo html_writer::end_div();
+$stats = encuestascdc_obtiene_estadisticas($questionnaires);
+$teachers = encuestascdc_obtiene_profesores($stats, $profesor1, $profesor2, $profesor3);
 
-echo $OUTPUT->heading('Encuesta de Satisfacción de Programas Corporativos', 1, array('class'=>'reporte_titulo'));
+list($statsbycourse_average, $statsbycourse_comments) = encuestascdc_obtiene_estadisticas_por_curso($stats);
+list($statsbysection_average, $statsbysection_questions, $statsbysection_comments) = encuestascdc_obtiene_estadisticas_por_seccion($stats);
 
-// Se obtienen los gráficos y las secciones de la encuesta
-list($grafico, $secciones, $totalalumnos) = uol_grafico_encuesta_rank($questionnaire->id, $module->id, $questiontype->typeid, $questiontypetext->id, $profesor1, $profesor2, $coordinadora, $group);
-$tasa = $totalestudiantes > 0 ? round(($totalalumnos / $totalestudiantes) * 100, 0) : 0;
-$portada = html_writer::div('Informe de resultados', 'subtitulo');
-
-$fecharealizacion = local_encuestascdc_util_mes_en_a_es(date('d F Y', $questionnaire->opendate));
-
-$htmlgrupo = '';
-if($group > 0) {
-    if(!$groupobj = $DB->get_record('groups', array('id'=>$group))) {
-        print_error('Invalid group');
-    }
+if($tiporeporte === 'course') {
+    // Se obtienen los gráficos y las secciones de la encuesta
+    $coursestats = $statsbycourse_average[0];
     
-    $htmlgrupo = "<tr>
-        <td class='portada-item'>Grupo</td>
-        <td class='portada-valor'>: $groupobj->name</td>
-    </tr>";    
+    if($destinatario === 'teacher') {
+        if(count($teachers) > 0) {
+            encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, NULL, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, NULL, $coordinadora, $tiporeporte);
+        }
+        if(count($teachers) > 1) {
+            encuestascdc_dibuja_portada($questionnaire, $group, NULL, $profesor2, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, $profesor2, $coordinadora, $tiporeporte);
+        }
+        if(count($teachers) > 2) {
+            encuestascdc_dibuja_portada($questionnaire, $group, NULL, NULL, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, NULL, $coordinadora, $tiporeporte);
+        }
+    } else {
+        encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, $profesor2, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+        encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, $profesor2, $coordinadora, $tiporeporte);
+    }
+} elseif($tiporeporte === 'program') {
+    echo '<div style=" resize: both; "><pre>' . print_r($teachers, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbycourse_average, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbycourse_comments, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbysection_average, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbysection_questions, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbysection_comments, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($stats, true) . '</pre></div>';
+    echo '<hr>';
+} else {
+    echo $OUTPUT->notification('ERROR! Tipo de reporte inválido', 'notifyproblem');
 }
-
-$htmlprofesor2 = $profesor2 === '' ? '' : "<tr>
-    <td class='portada-item'>Profesor 2</td>
-    <td class='portada-valor'>$profesor2</td>
-</tr>
-";
-$htmlprofesor3 = $profesor3 === '' ? '' : "<tr>
-    <td class='portada-item'>Profesor 3</td>
-    <td class='portada-valor'>$profesor3</td>
-</tr>
-";
-$portada .= "
-<table class='portada'>
-<tr>
-    <td class='portada-item'>Empresa</td>
-    <td class='portada-valor'>: $empresa</td>
-</tr>
-<tr>
-    <td class='portada-item'>Programa</td>
-    <td class='portada-valor'>: $programa</td>
-</tr>
-<tr>
-    <td class='portada-item'>Asignatura-Actividad</td>
-    <td class='portada-valor'>: $asignatura</td>
-</tr>
-$htmlgrupo
-<tr>
-    <td class='portada-item'>Fecha realización</td>
-    <td class='portada-valor'>: $fecharealizacion</td>
-</tr>";
-if($destinatario === 'program-director') {
-    $portada .= "
-    <tr>    
-        <td class='portada-item'>Profesor 1</td>
-        <td class='portada-valor'>: $profesor1</td>
-    </tr>
-    $htmlprofesor2
-    $htmlprofesor3";
-}
-$portada .= "
-<tr>
-    <td class='portada-item'>Coordinadora</td>
-    <td class='portada-valor'>: $coordinadora</td>
-</tr>
-<tr>
-    <td class='portada-item'>Número de alumnos</td>
-    <td class='portada-valor'>: $totalestudiantes</td>
-</tr>
-<tr>
-    <td class='portada-item'>Tasa de respuesta</td>
-    <td class='portada-valor'>: $tasa%</td>
-</tr>
-</table>
-";
-$portada .= html_writer::end_div();
-
-echo $portada;
-
-// Se muestra la tabla de contenidos con las secciones
-echo uol_tabla_contenidos($secciones, 1);
-
-// Se muestran los gráficos
-echo $grafico;
 
 // Footer de la página
 echo $OUTPUT->footer();

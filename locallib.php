@@ -31,84 +31,23 @@
  * @param int $typetextid id del tipo de pregunta texto
  * @return string[]|string[][]
  */
-function uol_grafico_encuesta_rank(int $questionnaireid, int $moduleid, int $typerankid, int $typetextid, String $profesor1, String $profesor2, String $coordinadora, int $groupid = 0) {
+function encuestascdc_grafico_encuesta_rank(array $questionnaires, $profesor1, $profesor2, $coordinadora, int $totalalumnos, int $groupid = 0) {
     global $DB, $OUTPUT, $CFG;
-    $totalalumnos = 0;
-    $rankfield = intval($CFG->version) < 2016120509 ? '' : 'value';
-    $surveyfield = intval($CFG->version) < 2019052000 ? 'survey_id' : 'surveyid';
-    $responseonclause = intval($CFG->version) < 2019052000 ? 'r.survey_id = s.id' : 'r.questionnaireid = qu.id';
-    $groupsql = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid AND gm.userid = r.userid)
-WHERE gm.groupid is not null" : ""; 
-    $groupsql2 = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid2 AND gm.userid = r.userid)
-WHERE gm.groupid is not null" : ""; 
-
-    // Query para respuestas
-    $sql="
-SELECT qu.id,
-	c.fullname,
-	s.id surveyid, 
-	s.title nombre, 
-	q.name seccion, 
-	q.content pregunta, 
-	qc.content opcion, 
-	q.length, 
-	group_concat(rr.rank$rankfield separator '#') answers,
-    q.position,
-	qt.type
-FROM
-	{questionnaire} qu
-	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid)
-	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid AND cm.instance = qu.id)
-	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
-	INNER JOIN {questionnaire_question} q ON (q.$surveyfield = s.id and q.type_id = :typerankid and q.deleted = 'n')
-	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = :typerankid2)
-    INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-	LEFT JOIN {questionnaire_response} r ON ($responseonclause)
-	LEFT JOIN {questionnaire_response_rank} rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
-    $groupsql
-GROUP BY qu.id,c.id,s.id, q.id, qc.id
-UNION ALL
-SELECT qu.id,
-	c.fullname,
-	s.id surveyid, 
-	s.title nombre, 
-	q.name seccion, 
-	q.content pregunta,
-    '' opcion,
-    '' length,
-    group_concat(rt.response separator '#') answers,
-    q.position,
-    qt.type
-FROM
-	{questionnaire} qu
-	INNER JOIN {course} c ON (qu.course = c.id AND qu.id = :questionnaireid2)
-	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = :moduleid2 AND cm.instance = qu.id)
-	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
-	INNER JOIN {questionnaire_question} q ON (q.$surveyfield = s.id and q.type_id = :typetextid and q.deleted = 'n')
-    INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
-    LEFT JOIN {questionnaire_response} r ON ($responseonclause)
-    LEFT JOIN {questionnaire_response_text} rt ON (rt.response_id = r.id AND rt.question_id = q.id)
-    $groupsql2
-GROUP BY qu.id,c.id,s.id, q.id
-ORDER BY position";
     
-    $params = array(
-        'questionnaireid' => $questionnaireid,
-        'moduleid' => $moduleid,
-        'typerankid' => $typerankid,
-        'typerankid2' => $typerankid,
-        'questionnaireid2' => $questionnaireid,
-        'moduleid2' => $moduleid,
-        'typetextid' => $typetextid
-    );
-    if($groupid > 0) {
-        $params['groupid'] = $groupid;
-        $params['groupid2'] = $groupid;
+    $respuestasstats = encuestascdc_obtiene_estadisticas($questionnaires, $groupid);
+    $respuestas = array();
+    foreach($respuestasstats as $k => $v) {
+        foreach($v as $k2 => $v2) {
+            foreach($v2 as $k3 => $v3) {
+                foreach($v3 as $k4 => $v4) {
+                    $respuestas[] = $v4['respuesta'];
+                }
+            }
+        }
     }
-    // Todas las respuestas
-    $respuestas = $DB->get_recordset_sql($sql, $params);
+
     // Arreglo con los nombres de secciones
-    $secciones = Array();
+    $secciones = array();
     // El html que se devuelve en el primer parámetro
     $fullhtml = '';
     // Html de preguntas abiertas
@@ -118,7 +57,7 @@ ORDER BY position";
     // Variable para contar preguntas cerradas dentro de una sección
     $preguntascerradasultimaseccion = 0;
 
-    if(!$respuestas->valid()) {
+    if(count($respuestas) == 0) {
         return array("", array(), 0);
     }
     
@@ -245,6 +184,302 @@ ORDER BY position";
     // Se retorna el html de gráficos y a lista de secciones
     return array($fullhtml ."</div><div class='´preguntas-abiertas'>$openhtml</div></div>", $secciones, $totalalumnos);
 }
+/**
+ * Página de reporte encuestas de UAI Corporate.
+ *
+ * @package local
+ * @subpackage encuestascdc
+ * @copyright 2018 Universidad Adolfo Ibáñez
+ * @author Jorge Villalón <jorge.villalon@uai.cl>
+ */
+ /**
+ * Obtiene los gráficos de preguntas tipo rank de la encuesta
+ * 
+ * @param int $questionnaireid id de la encuesta
+ * @param int $moduleid id del módulo questionnaire
+ * @param int $typerankid id del tipo de pregunta rank
+ * @param int $typetextid id del tipo de pregunta texto
+ * @return string[]|string[][]
+ */
+function encuestascdc_obtiene_estadisticas(array $questionnaires, int $groupid = 0) {
+    global $DB, $OUTPUT, $CFG;
+    
+    // Validación de instalación del módulo questionnaire
+    if(!$module = $DB->get_record('modules', array('name'=>'questionnaire'))) {
+        print_error('Módulo questionnaire no está instalado');
+    }
+
+    // Validación de tipo de respuesta rank
+    if(!$questiontype = $DB->get_record('questionnaire_question_type', array('response_table'=>'response_rank'))) {
+    	print_error('Tipo de pregunta rank no instalada');
+    }
+    
+    // Validación de tipo de respuesta texto
+    if(!$questiontypetext = $DB->get_record('questionnaire_question_type', array('response_table'=>'response_text', 'type'=>'Text Box'))) {
+        print_error('Tipo de pregunta Text Box no instalada');
+    }
+
+    $totalalumnos = 0;
+    $rankfield = intval($CFG->version) < 2016120509 ? '' : 'value';
+    $surveyfield = intval($CFG->version) < 2019052000 ? 'survey_id' : 'surveyid';
+    $responseonclause = intval($CFG->version) < 2019052000 ? 'r.survey_id = s.id' : 'r.questionnaireid = qu.id';
+    $groupsql = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid AND gm.userid = r.userid)
+WHERE gm.groupid is not null" : ""; 
+    $groupsql2 = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid2 AND gm.userid = r.userid)
+WHERE gm.groupid is not null" : "";
+
+    $questionnairesql = array();
+    foreach($questionnaires as $questionnaire) {
+        $questionnairesql[] = $questionnaire->id;
+    }
+
+    list($insql, $inparams) = $DB->get_in_or_equal($questionnairesql);
+    // Query para respuestas
+    $sql="
+SELECT qu.id,
+    c.id courseid,
+	c.fullname,
+	s.id surveyid, 
+	s.title nombre, 
+	q.name seccion, 
+	q.content pregunta, 
+	qc.content opcion, 
+	q.length, 
+	group_concat(rr.rank$rankfield order by r.userid separator '#') answers,
+	group_concat(r.userid order by r.userid separator '#') respondents,
+    q.position,
+	qt.type
+FROM
+	{questionnaire} qu
+	INNER JOIN {course} c ON (qu.course = c.id AND qu.id $insql)
+	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = ? AND cm.instance = qu.id)
+	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
+	INNER JOIN {questionnaire_question} q ON (q.$surveyfield = s.id and q.type_id = ? and q.deleted = 'n')
+	INNER JOIN {questionnaire_quest_choice} qc ON (qc.question_id = q.id and q.type_id = ?)
+    INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
+	LEFT JOIN {questionnaire_response} r ON ($responseonclause)
+	LEFT JOIN {questionnaire_response_rank} rr ON (rr.choice_id = qc.id and rr.question_id = q.id and rr.response_id = r.id)
+    $groupsql
+GROUP BY qu.id,c.id,s.id, q.id, qc.id
+UNION ALL
+SELECT qu.id,
+    c.id courseid,
+	c.fullname,
+	s.id surveyid, 
+	s.title nombre, 
+	q.name seccion, 
+	q.content pregunta,
+    '' opcion,
+    '' length,
+    group_concat(rt.response order by r.userid separator '#') answers,
+    group_concat(r.userid order by r.userid separator '#') answers,
+    q.position,
+    qt.type
+FROM
+	{questionnaire} qu
+	INNER JOIN {course} c ON (qu.course = c.id AND qu.id $insql)
+	INNER JOIN {course_modules} cm on (cm.course = qu.course AND cm.module = ? AND cm.instance = qu.id)
+	INNER JOIN {questionnaire_survey} s ON (s.id = qu.sid)
+	INNER JOIN {questionnaire_question} q ON (q.$surveyfield = s.id and q.type_id = ? and q.deleted = 'n')
+    INNER JOIN {questionnaire_question_type} qt ON (q.type_id = qt.typeid)
+    LEFT JOIN {questionnaire_response} r ON ($responseonclause)
+    LEFT JOIN {questionnaire_response_text} rt ON (rt.response_id = r.id AND rt.question_id = q.id)
+    $groupsql2
+GROUP BY qu.id,c.id,s.id, q.id
+ORDER BY position";
+    
+    $params = $inparams;
+    $params[] = $module->id;
+    $params[] = $questiontype->typeid;
+    $params[] = $questiontype->typeid;
+    for($i=0;$i<count($inparams);$i++) {
+        $params[] = $inparams[$i];
+    }
+    $params[] = $module->id;
+    $params[] = $questiontypetext->typeid;
+    
+    if($groupid > 0) {
+        $params['groupid'] = $groupid;
+        $params['groupid2'] = $groupid;
+    }
+
+    // Todas las respuestas
+    $respuestas = $DB->get_recordset_sql($sql, $params);
+    
+    if(!$respuestas->valid()) {
+        return false;
+    }
+    
+    // Arreglo con los nombres de secciones
+    $secciones = array();
+    // Variable con la última sección utilizada, para identificar cambio de sección
+    $ultimaseccion = '';
+    // Variable para contar preguntas cerradas dentro de una sección
+    $preguntascerradasultimaseccion = 0;
+
+    $stats = array();
+    $profesores = 0;
+    $nuevaseccion = false;
+    $estadisticas_seccion = null;
+    // Revisamos cada conjunto de respuestas por pregunta
+    foreach($respuestas as $respuesta)
+    {
+        if($respuesta->seccion === 'EVALUACIÓN DEL PROFESOR') {
+            if(strpos($respuesta->pregunta, 'Profesor 1') > 0) {
+                $respuesta->seccion .= '-P1';
+            } elseif(strpos($respuesta->pregunta, 'Profesor 2') > 0) {
+                $respuesta->seccion .= '-P2';
+            } elseif(strpos($respuesta->pregunta, 'Profesor 3') > 0) {
+                $respuesta->seccion .= '-P3';
+            }
+        }
+        if(!isset($stats[$respuesta->courseid])) {
+            $stats[$respuesta->courseid] = array();
+        }
+        
+        if(!isset($stats[$respuesta->courseid][$respuesta->seccion])) {
+            $stats[$respuesta->courseid][$respuesta->seccion] = array();
+        }
+        
+        if(!isset($stats[$respuesta->courseid][$respuesta->seccion][$respuesta->type])) {
+            $stats[$respuesta->courseid][$respuesta->seccion][$respuesta->type] = array();
+        }
+        
+        $stat = encuestascdc_respuesta_stats($respuesta);
+        
+        $stats[$respuesta->courseid][$respuesta->seccion][$respuesta->type][] = array('stats'=>$stat, 'respuesta'=>$respuesta, 'group'=>$groupid);
+    }
+    // Se retorna el html de gráficos y a lista de secciones
+    return $stats;
+}
+
+function encuestascdc_obtiene_profesores($stats, $profesor1, $profesor2, $profesor3) {
+    $teachers = array();
+    foreach($stats as $courseid => $statcourse) {
+        foreach($statcourse as $seccion => $statstype) {
+            if(substr($seccion, 0, 24) === 'EVALUACIÓN DEL PROFESOR') {
+                $numprof = substr($seccion, -3);
+                if(($numprof === '-P1' || $numprof === 'SOR') && !in_array($profesor1, $teachers)) {
+                    $teachers[] = $profesor1;
+                } elseif($numprof === '-P2' && !in_array($profesor2, $teachers)) {
+                    $teachers[] = $profesor2;
+                } elseif($numprof === '-P3' && !in_array($profesor3, $teachers)) {
+                    $teachers[] = $profesor3;
+                }
+            }
+        }
+    }
+    return $teachers;
+}
+
+function encuestascdc_obtiene_estadisticas_por_curso($stats) {
+    $coursestats = array();
+    $coursecomments = array();
+    $group = 0;
+    foreach($stats as $courseid => $statcourse) {
+        $row = array();
+        foreach($statcourse as $seccion => $statstype) {
+            foreach($statstype as $type => $statdetail) {
+                if($type === 'Rate (scale 1..5)') {
+                    $seccionstats = encuestascdc_crea_estadistica();
+                    foreach($statdetail as $detail) {
+                        $seccionstats = encuestascdc_suma_estadisticas($seccionstats, $detail['stats']);
+                        $group = $detail['group'];
+                    }
+                    $row['CURSO'] = $detail['respuesta']->fullname;
+                    $row[$seccion] = $seccionstats->promedio;
+                    $row['respondents'] = $seccionstats->respondents;
+                } else {
+                    if(!isset($coursecomments[$detail['respuesta']->fullname])) {
+                        $coursecomments[$detail['respuesta']->fullname] = array();
+                    }
+                    foreach($statdetail as $detail) {
+                        if(!isset($coursecomments[$detail['respuesta']->fullname][$detail['respuesta']->pregunta])) {
+                            $coursecomments[$detail['respuesta']->fullname][$detail['respuesta']->pregunta] = array();
+                        }
+                        $coursecomments[$detail['respuesta']->fullname][$detail['respuesta']->pregunta] = array_merge($coursecomments[$detail['respuesta']->fullname][$detail['respuesta']->pregunta], explode('#',$detail['respuesta']->answers));
+                        $group = $detail['group'];
+                    }
+                }
+            }
+        }
+        $context = context_course::instance($courseid);
+        $enrolledusers = get_enrolled_users($context, 'mod/assignment:submit', $group);
+        $totalrespondents = count($row['respondents']);
+        $totalstudents = count($enrolledusers);
+        $ratio = $totalstudents > 0 ? round(($totalrespondents / $totalstudents) * 100, 1) : 0;
+        $row['RATIO'] = $ratio;
+        $row['ENROLLEDSTUDENTS'] = $totalstudents;
+        $row['STUDENTS'] = $totalrespondents;
+
+        $coursestats[] = $row;
+    }
+    return array($coursestats, $coursecomments);
+}
+
+function encuestascdc_obtiene_estadisticas_por_seccion($stats) {
+    $seccionstats = array();
+    $preguntas = array();
+    $comments = array();
+    foreach($stats as $courseid => $statcourse) {
+        foreach($statcourse as $seccion => $statstype) {
+            foreach($statstype as $type => $statdetail) {
+                if($type === 'Rate (scale 1..5)') {
+                    if(!isset($seccionstats[$seccion])) {
+                        $seccionstats[$seccion] = encuestascdc_crea_estadistica();
+                    }
+                    if(!isset($preguntas[$seccion])) {
+                        $preguntas[$seccion] = array();
+                    }
+                    foreach($statdetail as $detail) {
+                        $seccionstats[$seccion] = encuestascdc_suma_estadisticas($seccionstats[$seccion], $detail['stats']);
+                        $preguntas[$seccion][] = $detail['respuesta']->opcion;
+                    }
+                } else {
+                    if(!isset($comments[$seccion])) {
+                        $comments[$seccion] = array();
+                    }
+                    foreach($statdetail as $detail) {
+                        if(!isset($comments[$seccion][$detail['respuesta']->pregunta])) {
+                            $comments[$seccion][$detail['respuesta']->pregunta] = array();
+                        }
+                        $comments[$seccion][$detail['respuesta']->pregunta] = array_merge($comments[$seccion][$detail['respuesta']->pregunta], explode('#',$detail['respuesta']->answers));
+                    }
+                }
+            }
+        }
+    }
+    return array($seccionstats, $preguntas, $comments);
+}
+
+function encuestascdc_crea_estadistica() {
+    $estadistica = new stdClass();
+    $estadistica->min = 1;
+    $estadistica->max = 0;
+    $estadistica->promedio = 0;
+    $estadistica->total = 0;
+    $estadistica->totalna = 0;
+    $estadistica->rank = 0;
+    $estadistica->respondents = array();
+    return $estadistica;
+}
+
+function encuestascdc_suma_estadisticas($stat1, $stat2) {
+    $estadistica = new stdClass();
+    $estadistica->min = min($stat1->min, $stat2->min);
+    $estadistica->max = max($stat1->max, $stat2->max);
+    $estadistica->promedio = (($stat1->promedio * $stat1->total) + ($stat2->promedio * $stat2->total)) / ($stat1->total + $stat2->total);
+    $estadistica->total = $stat1->total + $stat2->total;
+    $estadistica->totalna = $stat1->totalna + $stat2->totalna;
+    foreach($stat2->respondents as $respondent) {
+        if(!in_array($respondent, $stat1->respondents)) {
+            $stat1->respondents[] = $respondent;
+        }
+    }
+    $estadistica->rank = max($stat1->rank, $stat2->rank);
+    $estadistica->respondents = $stat1->respondents;
+    return $estadistica;
+}
 
 function uol_actualiza_estadisticas($estadisticas_nuevas, $estadisticas = NULL) {
     // Estadísticas de la sección
@@ -331,23 +566,135 @@ function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinad
     </table>
 </div>";
 }
+function encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, $profesor2, $coordinadora, $reporttype) {
+    foreach($statsbysection_questions as $section => $questions) {
+        if(!$sectionstats = $statsbysection_average[$section]) {
+            echo 'ERROR GRAVE: No hay stats para sección ' . $section;
+            continue;
+        }
+        $sectioncomments = false;
+        if(isset($statsbysection_comments[$section])) {
+            $sectioncomments = $statsbysection_comments[$section];
+        }
+        $cleanquestions = array();
+        foreach($questions as $q) {
+            $question = substr($q, 3);
+            $cleanquestions[] = $question;
+        }
+        $htmlcomments = '';
+        if($sectioncomments) {
+            $htmlcomments = encuestascdc_dibuja_comentarios($sectioncomments, $profesor1, $profesor2, $coordinadora);
+        }
+        $sectionstats->promedio = round($sectionstats->promedio, 1);
+        if($sectionstats->rank === '4') {
+            $scaletext = 'En una escala de 1 a 4, donde 1 es Bajo y 4 es Alto, indique su nivel de conformidad con las afirmaciones';
+        } else {
+            $scaletext = 'En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:';
+        }
+        $html = encuestascdc_dibuja_seccion($section, $scaletext, $profesor1, $profesor2, $coordinadora, $cleanquestions, $sectionstats, $htmlcomments, $reporttype);
+        echo $html;
+    }
+    $cleanquestions = array();
+    foreach($statsbysection_comments as $section => $comments) {
+        if(isset($statsbysection_average[$section])) {
+            continue;
+        }
+        $htmlcomments = encuestascdc_dibuja_comentarios($comments, $profesor1, $profesor2, $coordinadora);
+        $scaletext = "";
+        $html = encuestascdc_dibuja_seccion($section, $scaletext, $profesor1, $profesor2, $coordinadora, NULL, NULL, $htmlcomments, $reporttype);
+        echo $html;
+    }
+    echo '<div class="endreport"></div>';
+}
+function encuestascdc_dibuja_comentarios($sectioncomments, $profesor1, $profesor2, $coordinadora) {
+    $htmlcomments = '';
+    foreach($sectioncomments as $question => $commentsarr) {
+        $pregunta = $question;
+        if(stripos($question, "Profesor 1") !== false) {
+            $pregunta = str_replace("Profesor 1", $profesor1, $pregunta);
+        } elseif(stripos($question, "Profesor 2") !== false) {
+            $pregunta = str_replace("Profesor 2", $profesor2, $pregunta);
+        } elseif(stripos($question, "Coordinadora") !== false) {
+            $pregunta = str_replace("Coordinadora", $coordinadora, $pregunta);
+        }
+        $numanswers = count($commentsarr);
+        $answers = "- " . implode(" (sic) \n- ", $commentsarr) . " (SIC)";
+        $answers = strtoupper(str_replace(array('á','é','í','ó','ú','ñ'), array('Á','É','Í','Ó','Ú','Ñ'), $answers));
+        $htmlcomments .= "
+        <div class='row'>
+            <div class='col-md-12'>
+                <div class='preguntas'>
+                    <ul>
+                        <li>$pregunta</li>
+                    </ul>
+                </div>
+            </div>
+            <div class='col-md-12'>
+                <textarea class='comentarios' rows=$numanswers disabled>$answers</textarea>
+            </div>
+        </div>";
+    }
+    return $htmlcomments;
+}
+function encuestascdc_dibuja_seccion($title, $subtitle, $profesor1, $profesor2, $coordinadora, $questions, $stats, $htmlcomments, $reporttype) {
+    $htmlteacher = '';
+    if(substr($title, 0, 24) === 'EVALUACIÓN DEL PROFESOR') {
+        $numprof = substr($title, -3);
+        $title = substr($title, 0, 24);
+        if($numprof === '-P1' || $numprof === 'SOR') {
+            $teacher = $profesor1;
+            if($profesor1 == NULL) {
+                return;
+            }
+        } else {
+            $teacher = $profesor2;
+            if($profesor2 == NULL) {
+                return;
+            }
+        }
+        $htmlteacher = "
+        <div class='row'>
+            <div class='h5 col-md-12'>$teacher</div>
+        </div>";
 
-function uol_tabla_respuesta_rank($respuesta, $header = false) {
-    $gradient = array(
-        1 => "EF494F",
-        2 => "E96946",
-        3 => "E38E44",
-        4 => "DDB142",
-        5 => "D7D23F",
-        6 => "B1D13D",
-        7 => "88CB3B",
-        8 => "60C539",
-        9 => "3BBF37",
-        10 => "35B951",
-        11 => "33B26F"
-    );
+    }
     
-    
+    $htmlquestions = '';
+    if($questions && $stats) {
+        foreach($questions as $q) {
+            $htmlquestions .= '<li>' . $q . '</li>';
+        }
+        $htmlquestions = "
+        <div class='row row-questions'>
+            <div class='preguntas col-md-9 col-sm-8'>
+                <ul>
+                    $htmlquestions
+                </ul>
+            </div>
+            <div class='estadisticas-seccion col-md-3 col-sm-4'>
+                <ul>
+                    <li>Máximo: $stats->max</li>
+                    <li>Mínimo: $stats->min</li>
+                    <li>Promedio: $stats->promedio</li>
+                </ul>
+            </div>
+        </div>";
+    }
+    echo "
+    <div class='seccioncompleta break-before seccion'>
+        <div class='row'>
+            <div class='h4 col-md-6'>$title</div>
+            <div class='escala col-md-6'>
+                <div class='tituloescala'>$subtitle</div>
+            </div>
+        </div>
+        $htmlteacher
+        $htmlquestions
+        $htmlcomments
+    </div>";
+
+}
+function encuestascdc_respuesta_stats($respuesta) {
     // Todas las respuestas, indicando qué rank escogió de entre 0 y length - 1
     $ranks = explode('#', $respuesta->answers);
     // Totales de respuestas por cada rank
@@ -387,19 +734,66 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
         $promedio = round($promedio / ($total - $totalna),1);
     }
     
-    // Resumen de promedio y número respuestas
-    $resumenhtml = '<div class="promedio">' . $promedio . '</div><div class="numrespuestas hyphenate">Nº respuestas: ' . $total . '</div>';
-    $htmlpromedio = '<div class="promedio">' . $promedio . '</div>';
     $max = 0;
     $min = 0;
     foreach($values as $idx => $val) {
-        if($val > $max) {
-            $max = $val;
-        }
-        if($val < $min) {
-            $min = $val;
+        if($val > 0) {
+            $max = $idx;
+            $min = $idx;
+            break;
         }
     }
+    foreach($values as $idx => $val) {
+        if($idx > $max && $val > 0) {
+            $max = $idx;
+        }
+        if($idx < $min && $val > 0) {
+            $min = $idx;
+        }
+    }
+    $respondents = explode('#', $respuesta->respondents);
+    if(intval($respondents[0]) == 0) {
+        $respondents = array();
+    }
+    $output = new stdClass();
+    $output->values = $values;
+    $output->promedio = $promedio;
+    $output->min = $min;
+    $output->max = $max;
+    $output->rank = $respuesta->length;
+    $output->total = $total;
+    $output->totalna = $totalna;
+    $output->respondents = $respondents;
+    
+    return $output;
+}
+function uol_tabla_respuesta_rank($respuesta, $header = false) {
+    $gradient = array(
+        1 => "EF494F",
+        2 => "E96946",
+        3 => "E38E44",
+        4 => "DDB142",
+        5 => "D7D23F",
+        6 => "B1D13D",
+        7 => "88CB3B",
+        8 => "60C539",
+        9 => "3BBF37",
+        10 => "35B951",
+        11 => "33B26F"
+    );
+
+     $stats = uol_respuesta_stats($respuesta);
+     
+     $values = $stats->values;
+     $promedio = $stats->promedio;
+     $min = $stats->min;
+     $max = $stats->max;
+     $total = $stats->total;
+     $totalna = $stats->totalna;
+    
+    // Resumen de promedio y número respuestas
+    $resumenhtml = '<div class="promedio">' . $promedio . '</div><div class="numrespuestas hyphenate">Nº respuestas: ' . $total . '</div>';
+    $htmlpromedio = '<div class="promedio">' . $promedio . '</div>';
     // HTML y clase CSS para tabla de datos
     $classtabla = "cel-".$respuesta->length;
     $tablahtml = '<table class="datos '.$classtabla.'"><tr>';
@@ -411,7 +805,8 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
         }
     }
     $classinterno = '';
-    if($valuesna == 0) {
+    $valuesna = '';
+    if($totalna == 0) {
         $valuesna = '-';
         $classinterno = 'cero';
     }
@@ -481,4 +876,90 @@ function local_encuestascdc_util_mes_en_a_es($fecha, $corta = false) {
     }
     $fecha=str_replace($search, $replace, $fecha);
     return $fecha;
+}
+
+function encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, $profesor2, $profesor3, $asignatura, $empresa, $tasa, $programa, $destinatario, $coordinadora, $totalestudiantes) {
+    global $OUTPUT;
+    
+    // Se muestra la primera página con información del informe y general
+    echo html_writer::start_div('primera-pagina');
+    echo html_writer::start_div('logos');
+    echo html_writer::div("<img width=396 height='auto' src='img/logo-uai-corporate-no-transparente2.png'>", "uai-corporate-logo");
+    echo html_writer::end_div();
+    echo html_writer::end_div();
+    
+    echo $OUTPUT->heading('Encuesta de Satisfacción de Programas Corporativos', 1, array('class'=>'reporte_titulo'));
+
+    $portada = html_writer::div('Informe de resultados', 'subtitulo');
+    
+    $fecharealizacion = local_encuestascdc_util_mes_en_a_es(date('d F Y', $questionnaire->opendate));
+    
+    $htmlgrupo = '';
+    if($group > 0) {
+        if(!$groupobj = $DB->get_record('groups', array('id'=>$group))) {
+            print_error('Invalid group');
+        }
+        
+        $htmlgrupo = "<tr>
+            <td class='portada-item'>Grupo</td>
+            <td class='portada-valor'>: $groupobj->name</td>
+        </tr>";    
+    }
+    
+    $htmlprofesor2 = $profesor2 === '' ? '' : "<tr>
+        <td class='portada-item'>Profesor 2</td>
+        <td class='portada-valor'>$profesor2</td>
+    </tr>
+    ";
+    $htmlprofesor3 = $profesor3 === '' ? '' : "<tr>
+        <td class='portada-item'>Profesor 3</td>
+        <td class='portada-valor'>$profesor3</td>
+    </tr>
+    ";
+    $portada .= "
+    <table class='portada'>
+    <tr>
+        <td class='portada-item'>Empresa</td>
+        <td class='portada-valor'>: $empresa</td>
+    </tr>
+    <tr>
+        <td class='portada-item'>Programa</td>
+        <td class='portada-valor'>: $programa</td>
+    </tr>
+    <tr>
+        <td class='portada-item'>Asignatura-Actividad</td>
+        <td class='portada-valor'>: $asignatura</td>
+    </tr>
+    $htmlgrupo
+    <tr>
+        <td class='portada-item'>Fecha realización</td>
+        <td class='portada-valor'>: $fecharealizacion</td>
+    </tr>";
+    if($destinatario === 'program-director') {
+        $portada .= "
+        <tr>    
+            <td class='portada-item'>Profesor 1</td>
+            <td class='portada-valor'>: $profesor1</td>
+        </tr>
+        $htmlprofesor2
+        $htmlprofesor3";
+    }
+    $portada .= "
+    <tr>
+        <td class='portada-item'>Coordinadora</td>
+        <td class='portada-valor'>: $coordinadora</td>
+    </tr>
+    <tr>
+        <td class='portada-item'>Número de alumnos</td>
+        <td class='portada-valor'>: $totalestudiantes</td>
+    </tr>
+    <tr>
+        <td class='portada-item'>Tasa de respuesta</td>
+        <td class='portada-valor'>: $tasa%</td>
+    </tr>
+    </table>
+    ";
+    $portada .= html_writer::end_div();
+    
+    echo $portada;
 }
