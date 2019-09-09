@@ -29,7 +29,7 @@ Emisión de informe
 1. Navegar al curso
 2. Dentro del menú del curso (siendo profesor o gestor) hacer clic en "Reporte encuesta".
 3. Rellenar el formulario: Por ahora solo funciona "Reporte asignatura" (el global está en desarrollo). Seleccionar tipo de encuesta (probar con ambos). Plantilla de reporte utilizar "document" por ahora, el otro está en desarrollo (tipo ppt). Rellenar nombres de profesores (está en desarrollo que se rellenen solos cuando el curso tiene el profesor bien asignado) y coordinadora. En campos Empresa, Asignatura y Programa corregir los nombres de ser necesario.
-4. Probar por separado encuesta para Cliente y encuesta para Director de Programa. En el primer caso no deben aparecer nombres de profesores sino "Profesor 1", "Profesor 2" y así. En el segundo caso debe aparecer el nombre de cada profesor.
+4. Probar por separado encuesta para Profesor, Cliente y Director de Programa. En el caso de Cliente no deben aparecer nombres de profesores sino "Profesor 1", "Profesor 2" y así. En el caso del Director de Programa debe aparecer el nombre de cada profesor en un solo reporte. En el caso Profesor deben aparecer tantos informes como Profesores tenga el curso.
 
 Respuesta rápida de encuestas
 ------------------------------
