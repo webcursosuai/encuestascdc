@@ -25,13 +25,19 @@ header {
 }
 @page {
   size: letter;
-  margin-top: 11mm;
+  margin-top: 8mm;
   margin-right: 10mm;
   margin-left: 10mm;
-  margin-bottom: 11mm;
+  margin-bottom: 8mm;
+}
+.endreport {
+    break-after: always;
+    page-break-after: always;
 }
 .nombreprofesor {
     font-size: 16px;
+    margin-top: 12px;
+    font-weight: bold;
 }
 .comentarios {
 	font-size: 12px;
@@ -40,61 +46,16 @@ header {
     box-sizing: border-box;
     resize: vertical;
 }
+.row-comentarios {
+}
+.seccioncompleta .row {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
 @media print {
 	.comentarios {
 		resize: none;
 	}
-}
-.datos {
-	margin-left: auto;
-}
-.datos.cel-4 {
-	width: 100%;
-}
-.datos.cel-7 {
-	width: 100%;
-}
-.datos.cel-4 td {
-    width: 16%;
-    text-align: center;
-    font-size: 12px;
-    min-width: 41px;
-}
-.datos.cel-7 td {
-    width: 10%;
-    text-align: center;
-    font-size: 12px;
-    min-width: 41px;
-}
-.circulo {
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  margin-right: auto;
-}
-.circulo-interno {
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  margin-right: auto;  
-}
-.numero {
-	vertical-align: middle;
-	margin: 0px;
-	margin-left: auto;
-	margin-right: auto;
-}
-.cero {
-    border: none;
-    background-color: transparent;
-}
-.trgrafico {
-	display: none;
 }
 .logos {
 	height: 60px;
@@ -104,6 +65,9 @@ header {
     height: 67px;
     float: left;
 }
+#page-local-encuestascdc-index #page {
+    margin-top:0px;
+}
 .uai-logo {
     width: 200px;
     height: 67px;
@@ -112,7 +76,7 @@ header {
 .reporte_titulo {
     font-weight: bold;
     width: 100%;
-    font-size: 16px;
+    font-size: 22px;
     color: #666;
     padding: 5px;
     text-transform: uppercase;
@@ -122,7 +86,6 @@ header {
     display: block;
     position: relative;
     clear: both;
-    margin-top: 1cm;
 }
 .break-after {
     display: block;
@@ -142,14 +105,61 @@ hr {
 	font-weight: bold;
 }
 .seccion {
+    padding-top: 0.5cm;
+    padding-bottom: 0.5cm;
 	border-bottom: 3px solid #EA4E1D;
 }
 .titulografico {
-	width: 40%;
+	width: 80%;
 	vertical-align: middle;
 	padding-right: 50px;
 }
-.promedio {font-size: 16px; font-weight: bold;}
+.resultados {
+    display: flex;
+}
+.row-questions {
+    display: flex;
+    flex-wrap: wrap;
+}
+.estadisticas-seccion, .preguntas {
+    display:flex;
+    flex-direction: column;
+}
+.cierre-seccion {
+    display:inline;
+    min-width: 50%;
+}
+.preguntas ul {
+    list-style: none;
+    margin-bottom: 0px;
+}
+.preguntas li {
+    margin-bottom: 1px;
+    border-bottom: 1px solid #ddd;
+}
+.promedios {
+    display: flex;
+    width: 100%;
+}
+.maximo , .minimo, .promedio {
+    text-align: center;
+}
+.estadisticas-seccion {
+    display: flex;
+    align-items: center;
+}
+.estadisticas-seccion ul {
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+.estadisticas-seccion div {
+    margin-right: 1em;
+/*    margin-top: auto;
+    margin-bottom: auto;*/
+    width: 100%;
+}
 .numrespuestas {font-size: 12px;}
 .escala {
     font-size: 1em;

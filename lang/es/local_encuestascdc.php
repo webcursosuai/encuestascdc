@@ -32,12 +32,27 @@ $string['questionnaire']='Encuesta';
 $string['selectquestionnaire']='Seleccione encuesta';
 $string['questionnaire_help']='Seleccione la encuesta para la cual se generará el reporte';
 $string['questionnaire_report_layout']='Plantilla de reporte';
+$string['questionnaire_report_layout_help']='Plantilla que se usará para desplegar el reporte, hay formatos tipo documento y tipo presentación';
 // Form
 $string['search']='Buscar';
 $string['profesor']='Profesor';
+$string['profesores']='Profesores';
 $string['coordinadora']='Coordinadora';
 $string['empresa']='Empresa';
 $string['asignatura']='Asignatura';
 $string['programa']='Programa';
+$string['questionnaire_type']='Destinatario';
+$string['questionnaire_type_help']='El destinatario del reporte, puede ser el Cliente, que tendrá la información del profesor anonimizada, o el Director de programa, que mostrará los nombres de los profesores.';
+$string['program-director']='Director de programa';
+$string['client']='Cliente';
+$string['selecttype']='Seleccione destinatario';
+$string['selectlayout']='Seleccione plantilla';
+$string['selectreporttype']='Seleccione tipo de reporte';
+$string['reportcourse']='Reporte de asignatura';
+$string['reportprogram']='Reporte global';
+$string['reporttype']='Tipo de reporte';
+$string['reporttype_help']='El tipo de reporte que desea, puede ser Asignaura, para una sola asignatura, o global';
+$string['group']='Grupo';
+$string['group_help']='Seleccione el grupo de estudiantes que desea incluir en el reporte';
 // Permisos
 $string['encuestascdc:view'] = 'Ver reporte UAI Corporate';

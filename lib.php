@@ -31,14 +31,3 @@ function local_encuestascdc_extend_settings_navigation($settingsnav, $context) {
     }
 }
 
-function local_encuestascdc_util_mes_en_a_es($fecha, $corta = false) {
-    if(!$corta) {
-    $search = array('January','February','March','April','May','June','July','August','September','October','November','December');
-    $replace = array('Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre');
-    } else {
-    $search = array('Jan','Apr','Aug','Dec');
-    $replace = array('Ene','Abr','Ago','Dic');
-    }
-    $fecha=str_replace($search, $replace, $fecha);
-    return $fecha;
-}

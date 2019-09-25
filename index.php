@@ -25,14 +25,17 @@
 require_once (dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once ('forms/questionnaire_form.php');
 require_once ('lib.php');
+require_once ('locallib.php');
 
-// id del curso
+// Id del curso
 $courseid = required_param('id', PARAM_INT);
 
 // Si ya se escogió encuesta, valida el curso
 if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
     print_error('Curso inválido');
 }
+
+$url = new moodle_url('/local/encuestascdc/index.php', array('id'=>$courseid));
 
 // El usuario debe estar logueado
 require_login($course);
@@ -41,25 +44,70 @@ require_login($course);
 $context = context_course::instance($courseid);
 require_capability('local/encuestascdc:view', $context);
 
-// id de la encuesta
+// Id de la encuesta
 $qid = optional_param('qid', 0, PARAM_INT);
-// layout a mostrar
+$mqid = isset($_REQUEST['mqid']) ? $_REQUEST['mqid'] : array();
 $layout = optional_param('layout', null, PARAM_ALPHA);
-// print
-$print = optional_param('print', false, PARAM_BOOL);
-
-// Validación de instalación del módulo questionnaire
-if(!$module = $DB->get_record('modules', array('name'=>'questionnaire'))) {
-    print_error('Módulo questionnaire no está instalado');
-}
+$profesor1 = optional_param('profesor1', 'Profesor 1', PARAM_RAW_TRIMMED);
+$profesor2 = optional_param('profesor2', 'Profesor 2', PARAM_RAW_TRIMMED);
+$profesor3 = optional_param('profesor3', 'Profesor 3', PARAM_RAW_TRIMMED);
+$coordinadora = optional_param('coordinadora', 'Coordinadora académica', PARAM_RAW_TRIMMED);
+$empresa = optional_param('empresa', 'Empresa', PARAM_RAW_TRIMMED);
+$programa = optional_param('programa', 'Programa', PARAM_RAW_TRIMMED);
+$asignatura = optional_param('asignatura', 'Asignatura', PARAM_RAW_TRIMMED);
+$destinatario = optional_param('type', 'program-director', PARAM_RAW_TRIMMED);
+$tiporeporte = optional_param('reporttype', 'course', PARAM_RAW_TRIMMED);
+$group = optional_param('group', 0, PARAM_INT);
 
 // Configuración de página
 $PAGE->set_context($context);
-$PAGE->set_url('/local/encuestascdc/index.php');
+$PAGE->set_url($url);
 $PAGE->set_heading('Reporte de encuestas UAI Corporate');
 $PAGE->set_pagelayout('course');
 
-$form = new local_encuestascdc_questionnaire_form(null, array('course'=>$courseid, 'module'=>$module->id), 'GET');
+// Valida la categoría del curso
+if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->category))) {
+	print_error('Curso inválido');
+}
+
+$categoriesids = explode('/',$coursecategory->path);
+$categories = array();
+foreach($categoriesids as $catid) {
+    if($coursecat = $DB->get_record('course_categories', array('id'=>$catid))) {
+        $categories[] = $coursecat->name;
+    }
+}
+
+// Listado de profesores dentro del curso
+$rolprofesor = $DB->get_record('role', array('shortname' => 'editingteacher'));
+$profesores = get_role_users($rolprofesor->id, $context);
+
+// Listado de profesores dentro del curso
+$rolgestor = $DB->get_record('role', array('shortname' => 'manager'));
+$gestores = get_role_users($rolgestor->id, $context, true);
+
+$teachers = array();
+if($destinatario !== 'program-director' && $destinatario !== 'teacher') {
+    $teachers[1] = 'Profesor 1';
+    $teachers[2] = 'Profesor 2';
+    $teachers[3] = 'Profesor 3';
+} else {
+    $i=1;
+    foreach($profesores as $profesor) {
+        $teachers[$i] = $profesor->firstname . ' ' . $profesor->lastname;
+        $i++;
+    }
+}
+
+$managers = array();
+$i=1;
+foreach($gestores as $gestor) {
+    $managers[$i] = $gestor->firstname . ' ' . $gestor->lastname;
+    $i++;
+}
+
+$form = new local_encuestascdc_questionnaire_form(null, 
+    array('course'=>$courseid, 'teachers'=>$teachers, 'managers'=>$managers, 'categories'=>$categories), 'POST');
 
 // Si no se ha seleccionado una encuesta aún, mostrar el formulario
 if(!$form->get_data()) {
@@ -75,139 +123,38 @@ $PAGE->set_pagelayout('print');
 echo $OUTPUT->header();
 echo '<link href="https://fonts.googleapis.com/css?family=Lato|Open+Sans|Ubuntu" rel="stylesheet">';
 
-// Parámetros necesarios para imprimir la encuesta
-$profesor1 = required_param('profesor1', PARAM_RAW_TRIMMED);
-$profesor2 = optional_param('profesor2', '', PARAM_RAW_TRIMMED);
-$profesor3 = optional_param('profesor3', '', PARAM_RAW_TRIMMED);
-$coordinadora = required_param('coordinadora', PARAM_RAW_TRIMMED);
-$empresa = required_param('empresa', PARAM_RAW_TRIMMED);
-$programa = required_param('programa', PARAM_RAW_TRIMMED);
-$asignatura = required_param('asignatura', PARAM_RAW_TRIMMED);
-
-// Valida la categoría del curso
-if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->category))) {
-	print_error('Curso inválido');
-}
-
-// Listado de profesores dentro del curso
-$rolprofesor = $DB->get_record('role', array('shortname' => 'teacher'));
-$profesores = get_role_users($rolprofesor->id, $context);
-
 // Validación del objeto encuesta
-if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
-    print_error('Encuesta inválida');
+if($qid > 0) {
+    if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
+        print_error('Encuesta inválida');
+    }
+    $questionnaires = array($questionnaire->id => $questionnaire);
+} elseif(count($mqid) > 0) {
+    list($insql, $inparams) = $DB->get_in_or_equal($mqid);
+    $sql = "SELECT * FROM {bugtracker_issues} WHERE status $insql";
+    if(!$questionnaires = $DB->get_records_sql('SELECT * FROM {questionnaire} q WHERE id ' . $insql, $inparams)) {
+        print_error('Ids de encuestas inválidos');
+    }
+} else {
+    print_error('Acceso no autorizado');
 }
 
-preg_match('/^([^:]+):([^\-]+)-(.+)$/', $questionnaire->name, $partesnombre, PREG_OFFSET_CAPTURE);
-
-if(count($partesnombre) != 4) {
-    print_error('Nombre de encuesta inválida, debe contener dos guiones en el format A:B-C. Con B el nombre de la actividad, C las iniciales del profesor y A el nombre de la encuesta.');
-}
-
-$nombrebla = $partesnombre[1][0];
-$nombreactividad = $partesnombre[2][0];
-$nombreprofesor = $partesnombre[3][0];
-
-// Validación de tipo de respuesta rank
-if(!$questiontype = $DB->get_record('questionnaire_question_type', array('response_table'=>'response_rank'))) {
-	print_error('Tipo de pregunta rank no instalada');
-}
-
-// Validación de tipo de respuesta texto
-if(!$questiontypetext = $DB->get_record('questionnaire_question_type', array('response_table'=>'response_text', 'type'=>'Text Box'))) {
-    print_error('Tipo de pregunta Text Box no instalada');
-}
-
-// Validación del objeto coursemodule
-if(!$coursemodule = $DB->get_record('course_modules', array('instance'=>$qid,'module'=>$module->id))) {
-    print_error('Módulo de curso inválido');
-}
-
-// Validación del objeto course section
-if(!$coursesection = $DB->get_record('course_sections', array('id'=>$coursemodule->section))) {
-    print_error('Sección de curso inválida');
-}
+$enrolledusers = get_enrolled_users($context, 'mod/assignment:submit', $group);
+$totalestudiantes = count($enrolledusers);
 
 // Se incluye el layout escogido
-?>
-<style>
-<?php
 if($layout) {
     $layout = clean_filename($layout);
+    echo '<style>';
     include "css/questionnaire_$layout.css";
+    echo '</style>';
 }
-?>
-</style>
-<?php
 
-// Se muestra la primera página con información del informe y general
-echo html_writer::start_div('primera-pagina');
-echo html_writer::start_div('logos');
-echo "<div class='uai-corporate-logo'><img width=200 height=67 src='img/logo-uai-corporate-no-transparente2.png'></div>";
-echo html_writer::end_div();
+$stats = encuestascdc_obtiene_estadisticas($questionnaires);
+$teachers = encuestascdc_obtiene_profesores($stats, $profesor1, $profesor2, $profesor3);
 
-echo $OUTPUT->heading('Encuesta de Satisfacción de Programas Corporativos', 1, array('class'=>'reporte_titulo'));
-
-// Se obtienen los gráficos y las secciones de la encuesta
-list($grafico, $secciones, $totalalumnos) = uol_grafico_encuesta_rank($questionnaire->id, $module->id, $questiontype->typeid, $questiontypetext->id, $profesor1, $profesor2, $coordinadora);
-
-$portada = html_writer::div('Informe de resultados', 'subtitulo');
-
-$fecharealizacion = local_encuestascdc_util_mes_en_a_es(date('d F Y', $questionnaire->opendate));
-$htmlgrupo = strtoupper(substr($coursesection->name, 0, 1)) === 'G' ?
-"<tr>
-    <td class='portada-item'>Grupo</td>
-    <td class='portada-valor'>$coursesection->name</td>
-</tr>
-" : "";
-$htmlprofesor2 = $profesor2 === '' ? '' : "<tr>
-    <td class='portada-item'>Profesor 2</td>
-    <td class='portada-valor'>$profesor2</td>
-</tr>
-";
-$htmlprofesor3 = $profesor3 === '' ? '' : "<tr>
-    <td class='portada-item'>Profesor 3</td>
-    <td class='portada-valor'>$profesor3</td>
-</tr>
-";
-$portada .= "
-<table class='portada'>
-<tr>
-    <td class='portada-item'>Empresa</td>
-    <td class='portada-valor'>$empresa</td>
-</tr>
-<tr>
-    <td class='portada-item'>Programa</td>
-    <td class='portada-valor'>$programa</td>
-</tr>
-<tr>
-    <td class='portada-item'>Asignatura-Actividad</td>
-    <td class='portada-valor'>$asignatura</td>
-</tr>
-$htmlgrupo
-<tr>
-    <td class='portada-item'>Fecha realización</td>
-    <td class='portada-valor'>$fecharealizacion</td>
-</tr>
-<tr>
-    <td class='portada-item'>Profesor 1</td>
-    <td class='portada-valor'>$profesor1</td>
-</tr>
-$htmlprofesor2
-$htmlprofesor3
-<tr>
-    <td class='portada-item'>Coordinadora</td>
-    <td class='portada-valor'>$coordinadora</td>
-</tr>
-<tr>
-    <td class='portada-item'>Número de alumnos</td>
-    <td class='portada-valor'>$totalalumnos</td>
-</tr>
-</table>
-";
-$portada .= html_writer::end_div();
-
-echo $portada;
+list($statsbycourse_average, $statsbycourse_comments) = encuestascdc_obtiene_estadisticas_por_curso($stats);
+list($statsbysection_average, $statsbysection_questions, $statsbysection_comments) = encuestascdc_obtiene_estadisticas_por_seccion($stats);
 
 // Se muestra la tabla de contenidos con las secciones
 echo uol_tabla_contenidos($secciones, 1);
@@ -305,127 +252,40 @@ ORDER BY position";
     // Variable con la última sección utilizada, para identificar cambio de sección
     $ultimaseccion = '';
     
-    $profesores = 0;
-    $nuevaseccion = false;
-    // Revisamos cada conjunto de respuestas por pregunta
-    foreach($respuestas as $respuesta)
-    {
-    	// Si hay cambio de sección
-        if($ultimaseccion !== $respuesta->seccion) {
-            $nuevaseccion = true;
-        	// Se cierra div anterior (de sección)
-            if($ultimaseccion !== '') {
-                $fullhtml .= "</div>";
-            }
-            // Actualizamos última sección
-            $ultimaseccion = $respuesta->seccion;
-            // Agregamos a la lista de secciones
-            $secciones[] = $ultimaseccion;
-            // Clase para la escala de acuerdo al número de secciones
-            $classescala = "escala-" . count($secciones);
-            
-            // Se agregar un break vacío
-            $fullhtml .= "<div class='break-after'></div>";
-            $fullhtml .= "<div class='multicol cols-2 seccioncompleta'>";
-            
-            // Partimos con un break antes del título y el título
-            if($respuesta->type === "Rate (scale 1..5)") {
-                if($respuesta->length == 4) {
-                    $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
-                </div>";
-                } elseif($respuesta->length == 7) {
-                    $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>$respuesta->seccion</td><td><div class='escala $classescala'><div class='tituloescala'>En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:</div></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
-                </div>";
-                } else {
-                    $fullhtml .= '<div>Formato no definido</div>';
-                }
-            } else {
-                $fullhtml .= "<div class='tituloseccion break-before seccion'>". $respuesta->seccion . "<br/>&nbsp;</div>";
-            }
-            if(stripos($respuesta->seccion, "PROFESOR") !== false) {
-                $fullhtml .= "<h2 class='nombreprofesor'>$profesor1</h2>";
-                $profesores++;
-            } elseif(stripos($respuesta->seccion, "COORDINACI") !== false) {
-                $fullhtml .= "<h2 class='nombreprofesor'>$coordinadora</h2>";
-            }
-        } elseif(stripos($respuesta->seccion, "PROFESOR") !== false && $profesores > 0 && substr($respuesta->opcion, 0, 2) === "a)") {
-            $fullhtml .= "</div><div class='multicol cols-2 seccioncompleta'>";
-            $fullhtml .= "<div class='encuesta break-before seccion'>
-<table width='100%'><tr><td class='tituloseccion titulografico hyphenate'>&nbsp;</td><td><div class='escala $classescala'><div class='tituloescala'>Nivel de conformidad con afirmaciones</div><table width='100%'><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr></table></div></td></tr><tr class='trgrafico'><td class='tdgrafico'>'. '</td><td></td></tr></table>
-                </div>";
-                if($profesores == 1) {
-                    $fullhtml .= "<h2 class='nombreprofesor'>$profesor2</h2>";
-                    $profesores++;
-                } else {
-                    $fullhtml .= "<h2 class='nombreprofesor'>$profesor3</h2>";
-                }
+    if($destinatario === 'teacher') {
+        if(count($teachers) > 0) {
+            encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, NULL, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, NULL, $coordinadora, $tiporeporte);
         }
-        if($respuesta->type === "Rate (scale 1..5)") {
-            $fullhtml .= uol_tabla_respuesta_rank($respuesta, $nuevaseccion);
-        } elseif($respuesta->type === "Text Box") {
-            $fullhtml .= uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinadora);
+        if(count($teachers) > 1) {
+            encuestascdc_dibuja_portada($questionnaire, $group, NULL, $profesor2, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, $profesor2, $coordinadora, $tiporeporte);
         }
-        $partes = explode("#", $respuesta->answers);
-        if(count($partes) > $totalalumnos) {
-            $totalalumnos = count($partes);
+        if(count($teachers) > 2) {
+            encuestascdc_dibuja_portada($questionnaire, $group, NULL, NULL, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, NULL, $coordinadora, $tiporeporte);
         }
-        $nuevaseccion = false;
+    } else {
+        encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, $profesor2, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+        encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, $profesor2, $coordinadora, $tiporeporte);
     }
-    // Se retorna el html de gráficos y a lista de secciones
-    return array($fullhtml ."</div>", $secciones, $totalalumnos);
-}
-
-/**
- * Crea una tabla con contenidos dada una lista de secciones. Puede marcar una sección como la activa.
- * 
- * @param array $secciones
- * @param int $activo
- * @return string
- */
-function uol_tabla_contenidos(array $secciones, int $activo) {
-    global $OUTPUT;
-    
-    $output = '';
-    $output .= html_writer::start_div('navegacion');
-    $output .= $OUTPUT->heading('Contenido', 1, 'break-before');
-    $output .= "<ul>";
-    $i=0;
-    foreach($secciones as $seccion) {
-        $i++;
-        $liclass = $i == $activo ? 'activo' : '';
-        $output .= "<li class='$liclass'>$seccion</li>";
-    }
-    $output .= "</ul>";
-    $output .= html_writer::end_div();
-    return $output;
-}
-
-function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinadora) {
-    $answers = explode('#',$respuesta->answers);
-    $numanswers = count($answers);
-    $answers = implode("\n", $answers);
-    $pregunta = $respuesta->pregunta;
-    if(stripos($respuesta->pregunta, "Profesor 1") !== false) {
-        $pregunta = str_replace("Profesor 1", $profesor1, $pregunta);
-    } elseif(stripos($respuesta->pregunta, "Profesor 2") !== false) {
-        $pregunta = str_replace("Profesor 2", $profesor2, $pregunta);
-    } elseif(stripos($respuesta->pregunta, "Coordinadora") !== false) {
-        $pregunta = str_replace("Coordinadora", $coordinadora, $pregunta);
-    }
-    // Todas las respuestas, indicando qué rank escogió de entre 0 y length - 1
-    return "
-<div class='encuesta'>
-    <table width='100%'>
-        <tr>
-            <td class='titulografico'>$pregunta</td>
-        </tr>
-        <tr>
-            <td><textarea class='comentarios' name='text$respuesta->id' rows=$numanswers>$answers</textarea></td>
-        </tr>
-    </table>
-</div>";
+} elseif($tiporeporte === 'program') {
+    echo '<div style=" resize: both; "><pre>' . print_r($teachers, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbycourse_average, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbycourse_comments, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbysection_average, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbysection_questions, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($statsbysection_comments, true) . '</pre></div>';
+    echo '<hr>';
+    echo '<div style=" resize: both; "><pre>' . print_r($stats, true) . '</pre></div>';
+    echo '<hr>';
+} else {
+    echo $OUTPUT->notification('ERROR! Tipo de reporte inválido', 'notifyproblem');
 }
 
 function uol_tabla_respuesta_rank($respuesta, $header = false) {
