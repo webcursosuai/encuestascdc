@@ -220,9 +220,10 @@ function encuestascdc_obtiene_estadisticas(array $questionnaires, int $groupid =
     }
 
     $totalalumnos = 0;
-    $rankfield = intval($CFG->version) < 2016120509 ? '' : 'value';
-    $surveyfield = intval($CFG->version) < 2018051708 ? 'survey_id' : 'surveyid';
-    $responseonclause = intval($CFG->version) < 2018051708 ? 'r.survey_id = s.id' : 'r.questionnaireid = qu.id';
+    $pluginversion = intval(get_config('mod_questionnaire', 'version'));
+    $rankfield = $pluginversion < 2018050109 ? '' : 'value';
+    $surveyfield = $pluginversion < 2018050109 ? 'survey_id' : 'surveyid';
+    $responseonclause = $pluginversion < 2018050109 ? 'r.survey_id = s.id' : 'r.questionnaireid = qu.id';
     $groupsql = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid AND gm.userid = r.userid)
 WHERE gm.groupid is not null" : ""; 
     $groupsql2 = $groupid > 0 ? "LEFT JOIN {groups_members} gm ON (gm.groupid = :groupid2 AND gm.userid = r.userid)
