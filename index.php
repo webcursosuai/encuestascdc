@@ -136,7 +136,6 @@ list($statsbysection_average, $statsbysection_questions, $statsbysection_comment
 if($tiporeporte === 'course') {
     // Se obtienen los gráficos y las secciones de la encuesta
     $coursestats = $statsbycourse_average[0];
-
     if($destinatario === 'teacher') {
         if(count($teachers) > 0) {
             encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, NULL, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
@@ -170,6 +169,7 @@ if($tiporeporte === 'course') {
     echo '<div style=" resize: both; "><pre>' . print_r($stats, true) . '</pre></div>';
     echo '<hr>';
 } else {
+    var_dump($tiporeporte);
     echo $OUTPUT->notification('ERROR! Tipo de reporte inválido', 'notifyproblem');
 }
 // Footer de la página
