@@ -58,7 +58,7 @@ $url = new moodle_url('/local/encuestascdc/login.php');
 $PAGE->set_url ($url);
 $PAGE->set_context ( $context );
 $PAGE->set_pagelayout ( 'print' );
-$PAGE->set_title ( get_string ( 'login', 'local_uaio' ) );
+$PAGE->set_title ( get_string ( 'login', 'local_encuestascdc' ) );
 // Require jquery for modal.
 $PAGE->requires->jquery ();
 $PAGE->requires->jquery_plugin ( 'ui' );

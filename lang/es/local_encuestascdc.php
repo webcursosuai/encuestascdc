@@ -34,6 +34,9 @@ $string['questionnaire_help']='Seleccione la encuesta para la cual se generará 
 $string['questionnaire_report_layout']='Plantilla de reporte';
 $string['questionnaire_report_layout_help']='Plantilla que se usará para desplegar el reporte, hay formatos tipo documento y tipo presentación';
 // Form
+$string['rut']='RUT';
+$string['rut_help']='RUT sin puntos, con guión, o pasaporte';
+$string['login']='Ingresar';
 $string['search']='Buscar';
 $string['profesor']='Profesor';
 $string['profesores']='Profesores';
