@@ -139,19 +139,19 @@ if($tiporeporte === 'course') {
     if($destinatario === 'teacher') {
         if(count($teachers) > 0) {
             encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, NULL, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, NULL, $coordinadora, $tiporeporte);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, NULL, NULL, $coordinadora, $tiporeporte);
         }
         if(count($teachers) > 1) {
             encuestascdc_dibuja_portada($questionnaire, $group, NULL, $profesor2, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, $profesor2, $coordinadora, $tiporeporte);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, $profesor2, NULL, $coordinadora, $tiporeporte);
         }
         if(count($teachers) > 2) {
             encuestascdc_dibuja_portada($questionnaire, $group, NULL, NULL, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, NULL, $coordinadora, $tiporeporte);
+            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, NULL, $profesor3, $coordinadora, $tiporeporte);
         }
     } else {
         encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, $profesor2, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-        encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, $profesor2, $coordinadora, $tiporeporte);
+        encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, $profesor2, $profesor3, $coordinadora, $tiporeporte);
     }
 } elseif($tiporeporte === 'program') {
     echo '<div style=" resize: both; "><pre>' . print_r($teachers, true) . '</pre></div>';
