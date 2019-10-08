@@ -17,13 +17,13 @@ class local_encuestascdc_login_form extends moodleform {
 		$instance = $this->_customdata;
 
 		$mform->addElement('text', 'username', 'RUT o Pasaporte');
-		$mform->addHelpButton('username', 'rut', 'local_uaio');
+		$mform->addHelpButton('username', 'rut', 'local_encuestascdc');
 		$mform->setType('username', PARAM_RAW);
 
 		$mform->addElement('password', 'pwd', 'Contraseña');
 		$mform->setType('pwd', PARAM_RAW);
 
-		$this->add_action_buttons(false, get_string('login', 'local_uaio'));
+		$this->add_action_buttons(false, get_string('login', 'local_encuestascdc'));
 	}
 
 	public function validation($data, $files) {

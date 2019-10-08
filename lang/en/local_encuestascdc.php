@@ -34,6 +34,9 @@ $string['questionnaire_help']='Select the survey that will be used to generate t
 $string['questionnaire_report_layout']='Report template';
 $string['questionnaire_report_layout_help']='The template that willbe used to generate the report, there are docment and presentation layouts';
 // Form
+$string['rut']='Id number';
+$string['rut_help']='Id number of the user';
+$string['login']='Login';
 $string['search']='Search';
 $string['profesor']='Lecturer';
 $string['profesores']='Lecturers';
