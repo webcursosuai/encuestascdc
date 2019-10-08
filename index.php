@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle. If not, see <http://www.gnu.org/licenses/>.
-
 /**
  * Página de reporte encuestas de UAI Corporate.
  *
@@ -26,24 +25,18 @@ require_once (dirname(dirname(dirname(__FILE__))) . '/config.php');
 require_once ('forms/questionnaire_form.php');
 require_once ('lib.php');
 require_once ('locallib.php');
-
 // Id del curso
 $courseid = required_param('id', PARAM_INT);
-
 // Si ya se escogió encuesta, valida el curso
 if(!$course = $DB->get_record('course', array('id'=>$courseid))) {
     print_error('Curso inválido');
 }
-
 $url = new moodle_url('/local/encuestascdc/index.php', array('id'=>$courseid));
-
 // El usuario debe estar logueado
 require_login($course);
-
 // El usuario debe tener permiso asignado
 $context = context_course::instance($courseid);
 require_capability('local/encuestascdc:view', $context);
-
 // Id de la encuesta
 $qid = optional_param('qid', 0, PARAM_INT);
 $mqid = isset($_REQUEST['mqid']) ? $_REQUEST['mqid'] : array();
@@ -58,18 +51,15 @@ $asignatura = optional_param('asignatura', 'Asignatura', PARAM_RAW_TRIMMED);
 $destinatario = optional_param('type', 'program-director', PARAM_RAW_TRIMMED);
 $tiporeporte = optional_param('reporttype', 'course', PARAM_RAW_TRIMMED);
 $group = optional_param('group', 0, PARAM_INT);
-
 // Configuración de página
 $PAGE->set_context($context);
 $PAGE->set_url($url);
 $PAGE->set_heading('Reporte de encuestas UAI Corporate');
 $PAGE->set_pagelayout('course');
-
 // Valida la categoría del curso
 if(!$coursecategory = $DB->get_record('course_categories', array('id'=>$course->category))) {
-	print_error('Curso inválido');
+    print_error('Curso inválido');
 }
-
 $categoriesids = explode('/',$coursecategory->path);
 $categories = array();
 foreach($categoriesids as $catid) {
@@ -77,15 +67,12 @@ foreach($categoriesids as $catid) {
         $categories[] = $coursecat->name;
     }
 }
-
 // Listado de profesores dentro del curso
 $rolprofesor = $DB->get_record('role', array('shortname' => 'editingteacher'));
 $profesores = get_role_users($rolprofesor->id, $context);
-
 // Listado de profesores dentro del curso
 $rolgestor = $DB->get_record('role', array('shortname' => 'manager'));
 $gestores = get_role_users($rolgestor->id, $context, true);
-
 $teachers = array();
 if($destinatario !== 'program-director' && $destinatario !== 'teacher') {
     $teachers[1] = 'Profesor 1';
@@ -98,17 +85,14 @@ if($destinatario !== 'program-director' && $destinatario !== 'teacher') {
         $i++;
     }
 }
-
 $managers = array();
 $i=1;
 foreach($gestores as $gestor) {
     $managers[$i] = $gestor->firstname . ' ' . $gestor->lastname;
     $i++;
 }
-
-$form = new local_encuestascdc_questionnaire_form(null, 
+$form = new local_encuestascdc_questionnaire_form(null,
     array('course'=>$courseid, 'teachers'=>$teachers, 'managers'=>$managers, 'categories'=>$categories), 'POST');
-
 // Si no se ha seleccionado una encuesta aún, mostrar el formulario
 if(!$form->get_data()) {
     // Header de la páginas
@@ -117,12 +101,10 @@ if(!$form->get_data()) {
     echo $OUTPUT->footer();
     die();
 }
-
 $PAGE->set_pagelayout('print');
 // Header de la páginas
 echo $OUTPUT->header();
 echo '<link href="https://fonts.googleapis.com/css?family=Lato|Open+Sans|Ubuntu" rel="stylesheet">';
-
 // Validación del objeto encuesta
 if($qid > 0) {
     if(!$questionnaire = $DB->get_record('questionnaire', array('id'=>$qid))) {
@@ -138,10 +120,8 @@ if($qid > 0) {
 } else {
     print_error('Acceso no autorizado');
 }
-
 $enrolledusers = get_enrolled_users($context, 'mod/assignment:submit', $group);
 $totalestudiantes = count($enrolledusers);
-
 // Se incluye el layout escogido
 if($layout) {
     $layout = clean_filename($layout);
@@ -149,17 +129,13 @@ if($layout) {
     include "css/questionnaire_$layout.css";
     echo '</style>';
 }
-
 $stats = encuestascdc_obtiene_estadisticas($questionnaires);
 $teachers = encuestascdc_obtiene_profesores($stats, $profesor1, $profesor2, $profesor3);
-
 list($statsbycourse_average, $statsbycourse_comments) = encuestascdc_obtiene_estadisticas_por_curso($stats);
 list($statsbysection_average, $statsbysection_questions, $statsbysection_comments) = encuestascdc_obtiene_estadisticas_por_seccion($stats);
-
 if($tiporeporte === 'course') {
     // Se obtienen los gráficos y las secciones de la encuesta
     $coursestats = $statsbycourse_average[0];
-    
     if($destinatario === 'teacher') {
         if(count($teachers) > 0) {
             encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, NULL, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
@@ -196,6 +172,5 @@ if($tiporeporte === 'course') {
     var_dump($tiporeporte);
     echo $OUTPUT->notification('ERROR! Tipo de reporte inválido', 'notifyproblem');
 }
-
 // Footer de la página
 echo $OUTPUT->footer();
