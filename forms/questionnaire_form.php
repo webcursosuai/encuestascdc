@@ -109,11 +109,43 @@ class local_encuestascdc_questionnaire_form extends moodleform
             $mform->addRule('reporttype', 'Debe seleccionar un tipo de reporte', 'required');
 
             $select = array();
+            $arrayjs = array();
             foreach ($mquestionnaires as $questionnaire) {
+                preg_match_all("/<li>PROFESOR\/FACILITADOR\s*\d:(.*)<\/li>/",$questionnaire->intro,$m);
+                $arrayjs[$questionnaire->id] = isset($m[1]) ? $m[1] : null;
                 $select[$questionnaire->id] = $questionnaire->fullname . '-' . $questionnaire->section . '-' . $questionnaire->name . '-' . date('d M Y H:m', $questionnaire->opendate);
             }
+            $arrayjs = json_encode($arrayjs);
+            $extrajs = "
+            <script>
+            var profesores = $arrayjs;
+            function refrescaProfesores(element) {
+                if(profesores[element.value] === undefined) {
+                    return;
+                }
+                var profesoresNombres = profesores[element.value];
+                var profesor1 = document.getElementById('id_profesor1');
+                var profesor2 = document.getElementById('id_profesor2');
+                var profesor3 = document.getElementById('id_profesor3');
+                if(profesoresNombres[0] !== undefined) {
+                    profesor1.value = profesoresNombres[0];
+                    if(profesoresNombres[1] !== undefined) {
+                        profesor2.value = profesoresNombres[1];
+                    } else {
+                        profesor2.value = '';
+                    }
+                    if(profesoresNombres[2] !== undefined) {
+                        profesor3.value = profesoresNombres[2];
+                    } else {
+                        profesor3.value = '';
+                    }
+                }
+            }
+            </script>
+            ";
+            $mform->addElement('html', $extrajs);
             
-            $attributes=array('size'=>'20');
+            $attributes=array('size'=>'20', 'onchange'=>'refrescaProfesores(this)');
             $formselect = $mform->addElement('select', 'mqid', get_string('questionnaire', 'local_encuestascdc'), $select, $attributes);
             $mform->addHelpButton('mqid', 'questionnaire', 'local_encuestascdc');
             $formselect->setMultiple('mqid', true);
@@ -125,7 +157,7 @@ class local_encuestascdc_questionnaire_form extends moodleform
                 $select[$questionnaire->id] = $questionnaire->section . '-' . $questionnaire->name . '-' . date('d M Y H:m', $questionnaire->opendate);
             }
             
-            $formselect = $mform->addElement('select', 'qid', get_string('questionnaire', 'local_encuestascdc'), $select);
+            $formselect = $mform->addElement('select', 'qid', get_string('questionnaire', 'local_encuestascdc'), $select, $attributes);
             $mform->addHelpButton('qid', 'questionnaire', 'local_encuestascdc');
             $mform->hideIf('qid', 'reporttype', 'neq', 'course');
             $mform->setDefault('qid', '');
