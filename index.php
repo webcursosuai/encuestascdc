@@ -104,6 +104,7 @@ if(!$form->get_data()) {
 $PAGE->set_pagelayout('print');
 // Header de la páginas
 echo $OUTPUT->header();
+echo '<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">';
 echo '<link href="https://fonts.googleapis.com/css?family=Lato|Open+Sans|Ubuntu" rel="stylesheet">';
 // Validación del objeto encuesta
 if($qid > 0) {
@@ -127,6 +128,7 @@ if($layout) {
     $layout = clean_filename($layout);
     echo '<style>';
     include "css/questionnaire_$layout.css";
+    echo 'header {display: none !important;}';
     echo '</style>';
 }
 $stats = encuestascdc_obtiene_estadisticas($questionnaires);
