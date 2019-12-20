@@ -564,6 +564,9 @@ function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinad
         <tr>
             <td><textarea class='comentarios' name='text$respuesta->id' rows=$numanswers disabled>$answers</textarea></td>
         </tr>
+        <tr>
+            <td>SIC: Así fue escrito.</td>
+        </tr>
     </table>
 </div>";
 }
@@ -634,6 +637,9 @@ function encuestascdc_dibuja_comentarios($sectioncomments, $profesor1, $profesor
             </div>
             <div class='col-md-12'>
                 <textarea class='comentarios' rows=$numanswers disabled>$answers</textarea>
+            </div>
+            <div class='col-md-12'>
+                SIC: Así fue escrito.
             </div>
         </div>";
     }
@@ -942,14 +948,22 @@ function encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, $profes
         <td class='portada-item'>Fecha realización</td>
         <td class='portada-valor'>: $fecharealizacion</td>
     </tr>";
-    if($destinatario === 'program-director') {
-        $portada .= "
-        <tr>    
-            <td class='portada-item'>Profesor 1</td>
-            <td class='portada-valor'>: $profesor1</td>
-        </tr>
-        $htmlprofesor2
-        $htmlprofesor3";
+    if($destinatario === 'program-director' || $destinatario === 'teacher') {
+        if($destinatario === 'teacher') {
+            $portada .= "
+            <tr>    
+                <td class='portada-item'>Profesor</td>
+                <td class='portada-valor'>: $profesor1</td>
+            </tr>";
+        } else {
+            $portada .= "
+                <tr>    
+                    <td class='portada-item'>Profesor 1</td>
+                    <td class='portada-valor'>: $profesor1</td>
+                </tr>
+                $htmlprofesor2
+                $htmlprofesor3";
+        }
     }
     $portada .= "
     <tr>
