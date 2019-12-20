@@ -132,10 +132,12 @@ hr {
 .preguntas ul {
     list-style: none;
     margin-bottom: 0px;
+    margin-top: 5px;
 }
 .preguntas li {
     margin-bottom: 1px;
     border-bottom: 1px solid #ddd;
+    line-height: 1.5em;
 }
 .promedios {
     display: flex;
