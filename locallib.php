@@ -31,7 +31,7 @@
  * @param int $typetextid id del tipo de pregunta texto
  * @return string[]|string[][]
  */
-function encuestascdc_grafico_encuesta_rank(array $questionnaires, $profesor1, $profesor2, $coordinadora, int $totalalumnos, int $groupid = 0) {
+function encuestascdc_grafico_encuesta_rank(array $questionnaires, $profesor1, $profesor2, $profesor3, $coordinadora, int $totalalumnos, int $groupid = 0) {
     global $DB, $OUTPUT, $CFG;
     
     $respuestasstats = encuestascdc_obtiene_estadisticas($questionnaires, $groupid);
@@ -79,7 +79,7 @@ function encuestascdc_grafico_encuesta_rank(array $questionnaires, $profesor1, $
                 }
                 $htmlstats = uol_tabla_estadisticas($estadisticas_seccion);
                 if($preguntascerradasultimaseccion > 0) {
-                    $fullhtml .= "</div><div class='promedios $classescala'>$htmlstats</div>";
+                    $fullhtml .= "</div>";
                 } else {
                     $fullhtml .= "</div>";
                 }
@@ -129,7 +129,12 @@ function encuestascdc_grafico_encuesta_rank(array $questionnaires, $profesor1, $
                     $fullhtml .= '<div>Formato no definido</div>';
                 }
             } else {
-                $fullhtml .= "<div class='tituloseccion break-before seccion'>". $respuesta->seccion . "<br/>&nbsp;</div>";
+                $fullhtml .= "
+                <div class='encuesta break-before seccion'>
+                    <div class='row'>
+                        <div class='h4 col-md-12'>". $respuesta->seccion . "</div>
+                    </div>
+                </div>";
             }
             if(stripos($respuesta->seccion, "PROFESOR") !== false) {
                 $fullhtml .= "<h2 class='nombreprofesor'>$profesor1</h2>";
@@ -434,7 +439,7 @@ function encuestascdc_obtiene_estadisticas_por_seccion($stats) {
                     }
                     foreach($statdetail as $detail) {
                         $seccionstats[$seccion] = encuestascdc_suma_estadisticas($seccionstats[$seccion], $detail['stats']);
-                        $preguntas[$seccion][] = $detail['respuesta']->opcion;
+                        $preguntas[$seccion][] = array('pregunta'=>$detail['respuesta']->opcion,'respuestas'=>$detail['stats']);
                     }
                 } else {
                     if(!isset($comments[$seccion])) {
@@ -462,6 +467,7 @@ function encuestascdc_crea_estadistica() {
     $estadistica->totalna = 0;
     $estadistica->rank = 0;
     $estadistica->respondents = array();
+    $estadistica->values = array();
     return $estadistica;
 }
 
@@ -479,6 +485,7 @@ function encuestascdc_suma_estadisticas($stat1, $stat2) {
     }
     $estadistica->rank = max($stat1->rank, $stat2->rank);
     $estadistica->respondents = $stat1->respondents;
+    $estadistica->values[] = $stat2;
     return $estadistica;
 }
 
@@ -570,20 +577,15 @@ function uol_tabla_respuesta_text($respuesta, $profesor1, $profesor2, $coordinad
     </table>
 </div>";
 }
-function encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, $profesor2, $profesor3, $coordinadora, $reporttype) {
-    foreach($statsbysection_questions as $section => $questions) {
-        if(!$sectionstats = $statsbysection_average[$section]) {
+function encuestascdc_dibujar_reporte($stats, $profesor1, $profesor2, $profesor3, $coordinadora, $reporttype, $destinatario) {
+    foreach($stats['bysection_questions'] as $section => $questions) {
+        if(!$sectionstats = $stats['bysection_average'][$section]) {
             echo 'ERROR GRAVE: No hay stats para sección ' . $section;
             continue;
         }
         $sectioncomments = false;
-        if(isset($statsbysection_comments[$section])) {
-            $sectioncomments = $statsbysection_comments[$section];
-        }
-        $cleanquestions = array();
-        foreach($questions as $q) {
-            $question = substr($q, 3);
-            $cleanquestions[] = $question;
+        if(isset($stats['bysection_comments'][$section])) {
+            $sectioncomments = $stats['bysection_comments'][$section];
         }
         $htmlcomments = '';
         if($sectioncomments) {
@@ -595,17 +597,16 @@ function encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection
         } else {
             $scaletext = 'En una escala de 1 a 7, donde 1 es Muy Malo y 7 es Excelente, con qué nota evaluaría:';
         }
-        $html = encuestascdc_dibuja_seccion($section, $scaletext, $profesor1, $profesor2, $profesor3, $coordinadora, $cleanquestions, $sectionstats, $htmlcomments, $reporttype);
+        $html = encuestascdc_dibuja_seccion($section, $scaletext, $profesor1, $profesor2, $profesor3, $coordinadora, $questions, $stats, $htmlcomments, $reporttype, $destinatario);
         echo $html;
     }
-    $cleanquestions = array();
-    foreach($statsbysection_comments as $section => $comments) {
-        if(isset($statsbysection_average[$section])) {
+    foreach($stats['bysection_comments'] as $section => $comments) {
+        if(isset($stats['bysection_average'][$section])) {
             continue;
         }
         $htmlcomments = encuestascdc_dibuja_comentarios($comments, $profesor1, $profesor2, $profesor3, $coordinadora);
         $scaletext = "";
-        $html = encuestascdc_dibuja_seccion($section, $scaletext, $profesor1, $profesor2, $profesor3, $coordinadora, NULL, NULL, $htmlcomments, $reporttype);
+        $html = encuestascdc_dibuja_seccion($section, $scaletext, $profesor1, $profesor2, $profesor3, $coordinadora, NULL, NULL, $htmlcomments, $reporttype, $destinatario);
         echo $html;
     }
     echo '<div class="endreport"></div>';
@@ -645,7 +646,12 @@ function encuestascdc_dibuja_comentarios($sectioncomments, $profesor1, $profesor
     }
     return $htmlcomments;
 }
-function encuestascdc_dibuja_seccion($title, $subtitle, $profesor1, $profesor2, $profesor3, $coordinadora, $questions, $stats, $htmlcomments, $reporttype) {
+
+function encuestascdc_dibuja_seccion($title, $subtitle, $profesor1, $profesor2, $profesor3, $coordinadora, $questions, $stats, $htmlcomments, $reporttype, $destinatario) {
+    if(!$sectionstats = $stats['bysection_average'][$title]) {
+        echo 'ERROR GRAVE: No hay stats para sección ' . $title;
+        die();
+    }    
     $htmlteacher = '';
     if(substr($title, 0, 24) === 'EVALUACIÓN DEL PROFESOR') {
         $numprof = substr($title, -3);
@@ -670,27 +676,45 @@ function encuestascdc_dibuja_seccion($title, $subtitle, $profesor1, $profesor2, 
         <div class='row'>
             <div class='h5 col-md-12'>$teacher</div>
         </div>";
-
     }
-    
+
     $htmlquestions = '';
-    if($questions && $stats) {
-        foreach($questions as $q) {
-            $htmlquestions .= '<li>' . $q . '</li>';
+    if($destinatario === 'client') {
+        if($questions && $stats) {
+            foreach($questions as $q) {
+                $htmlquestions .= '<li>' . substr($q['pregunta'], 3) . '</li>';
+            }
+            $htmlquestions = "
+            <div class='row row-questions'>
+                <div class='preguntas col-md-9 col-sm-8'>
+                    <ul>
+                        $htmlquestions
+                    </ul>
+                </div>
+                <div class='estadisticas-seccion col-md-3 col-sm-4'>
+                    <ul>
+                        <li>Máximo: $sectionstats->max</li>
+                        <li>Mínimo: $sectionstats->min</li>
+                        <li>Promedio: $sectionstats->promedio</li>
+                    </ul>
+                </div>
+            </div>";
+        }
+    } else {
+        if($questions && $stats) {
+            $i=0;
+            foreach($questions as $q) {
+                $circulos = uol_tabla_distribucion_respuestas($q, $i == 0);
+                $htmlquestions .= '<tr><td class="titulografico">' . substr($q['pregunta'], 3) . '</td><td class="datos">' . $circulos . '</td></tr>';
+                $i++;
+            }
         }
         $htmlquestions = "
         <div class='row row-questions'>
-            <div class='preguntas col-md-9 col-sm-8'>
-                <ul>
+            <div class='preguntas col-md-12 col-sm-12'>
+                <table class='tabladistribucion'>
                     $htmlquestions
-                </ul>
-            </div>
-            <div class='estadisticas-seccion col-md-3 col-sm-4'>
-                <ul>
-                    <li>Máximo: $stats->max</li>
-                    <li>Mínimo: $stats->min</li>
-                    <li>Promedio: $stats->promedio</li>
-                </ul>
+                </table>
             </div>
         </div>";
     }
@@ -706,8 +730,8 @@ function encuestascdc_dibuja_seccion($title, $subtitle, $profesor1, $profesor2, 
         $htmlquestions
         $htmlcomments
     </div>";
-
 }
+
 function encuestascdc_respuesta_stats($respuesta) {
     // Todas las respuestas, indicando qué rank escogió de entre 0 y length - 1
     $ranks = explode('#', $respuesta->answers);
@@ -781,6 +805,67 @@ function encuestascdc_respuesta_stats($respuesta) {
     
     return $output;
 }
+function uol_tabla_distribucion_respuestas($respuesta, $header = true) {
+    $gradient = array(
+        1 => "EF494F",
+        2 => "E96946",
+        3 => "E38E44",
+        4 => "DDB142",
+        5 => "D7D23F",
+        6 => "B1D13D",
+        7 => "88CB3B",
+        8 => "60C539",
+        9 => "3BBF37",
+        10 => "35B951",
+        11 => "33B26F"
+    );
+    $stats = $respuesta['respuestas'];
+    $tablahtml = '<table class="datos"><tr>';
+    if($header) {
+        if($stats->rank == 7) {
+            $tablahtml .= "<tr><td width='10%'>NS/NC</td><td width='10%'>1</td><td width='10%'>2</td><td width='10%'>3</td><td width='10%'>4</td><td width='10%'>5</td><td width='10%'>6</td><td width='10%'>7</td><td width='20%'>Prom.</td></tr>";
+        } else {
+            $tablahtml .= "<tr><tr><td width='16%'>NS/NC</td><td width='16%'>Bajo</td><td width='16%'>Medio Bajo</td><td width='16%'>Medio Alto</td><td width='16%'>Alto</td><td width='20%'>Promedio</td></tr>";
+        }
+    }
+    $classinterno = '';
+    if($stats->totalna == 0) {
+        $valuesna = '-';
+        $classinterno = 'cero';
+    } else {
+        $valuesna = $stats->totalna;
+    }
+    $tablahtml .= "<td><div class=\"circulo\"><div class=\"numero\">$valuesna</div></div></td>";
+    $nivel = 1;
+    if($stats->rank == 7) {
+        $tdwidth = '10%';
+    } else {
+        $tdwidth = '16%';
+    }
+    $max = $stats->max;
+    foreach($stats->values as $idx => $val) {
+        $percent = $max > 0 ? round(($val / $max) * 13,0) + 7 : 0;
+        $indexgradient = 1 + (10/$stats->rank) * ($nivel - 1);
+        $fill = "#" . $gradient[$indexgradient];
+        $classinterno = '';
+        if($val == 0) {
+            $val = '-';
+            $classinterno = 'cero';
+            $fill = '#fff';
+        }
+        $tablahtml .= "<td width='$tdwidth'><svg width='40' height='40'><circle cx='20' cy='20' r='$percent' stroke='none' fill='$fill' />
+<text font-size='12'
+      fill='black'
+      font-family='Verdana'
+      text-anchor='middle'
+      alignment-baseline='baseline'
+      x='20'
+      y='25'>$val</text></svg></td>";
+        $nivel++;
+    }
+    $tablahtml .= '<td style="width:20%" class="promedio">'.$stats->promedio.'</td></tr></table>';
+    return $tablahtml;
+}
 function uol_tabla_respuesta_rank($respuesta, $header = false) {
     $gradient = array(
         1 => "EF494F",
@@ -795,19 +880,60 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
         10 => "35B951",
         11 => "33B26F"
     );
-
-     $stats = uol_respuesta_stats($respuesta);
-     
-     $values = $stats->values;
-     $promedio = $stats->promedio;
-     $min = $stats->min;
-     $max = $stats->max;
-     $total = $stats->total;
-     $totalna = $stats->totalna;
+    
+    
+    // Todas las respuestas, indicando qué rank escogió de entre 0 y length - 1
+    $ranks = explode('#', $respuesta->answers);
+    // Totales de respuestas por cada rank
+    $values = array();
+    // Promedio acumulado
+    $promedio = 0;
+    // Total de respuestas
+    $total = count($ranks);
+    // Total de respuestas NA (para no considerar en el promedio)
+    $totalna = 0;
+    // Por cada rank posible (de 0 a length - 1)
+    for($i=-1;$i<$respuesta->length;$i++) {
+        // Inicializamos valores
+        // Si es -1 es porque es NA (NS/NC No sabe, no contesta)
+        if($i<0) {
+            $valuesna = 0;
+        } else {
+            $values[$i+1] = 0;
+        }
+        // Cuenta cuántos valores de dicho rank hay. Recorre todas las respuestas
+        for($j=0;$j<count($ranks);$j++) {
+            // Si la respuesta corresponde al rank
+            if($ranks[$j] == $i) {
+                // Suma a valores NA o al valor
+                if($i<0) {
+                    $valuesna++;
+                    $totalna++;
+                } else {
+                    $values[$i+1]++;
+                    $promedio += $i+1;
+                }
+            }
+        }
+    }
+    // Calculamos promedio si es viable, de lo contrario queda en 0
+    if($total - $totalna > 0) {
+        $promedio = round($promedio / ($total - $totalna),1);
+    }
     
     // Resumen de promedio y número respuestas
     $resumenhtml = '<div class="promedio">' . $promedio . '</div><div class="numrespuestas hyphenate">Nº respuestas: ' . $total . '</div>';
     $htmlpromedio = '<div class="promedio">' . $promedio . '</div>';
+    $max = 0;
+    $min = 0;
+    foreach($values as $idx => $val) {
+        if($val > $max) {
+            $max = $val;
+        }
+        if($val < $min) {
+            $min = $val;
+        }
+    }
     // HTML y clase CSS para tabla de datos
     $classtabla = "cel-".$respuesta->length;
     $tablahtml = '<table class="datos '.$classtabla.'"><tr>';
@@ -819,13 +945,17 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
         }
     }
     $classinterno = '';
-    $valuesna = '';
-    if($totalna == 0) {
+    if($valuesna == 0) {
         $valuesna = '-';
         $classinterno = 'cero';
     }
     $tablahtml .= "<td><div class=\"circulo\"><div class=\"numero\">$valuesna</div></div></td>";
     $nivel = 1;
+    if($respuesta->length == 7) {
+        $tdwidth = '10%';
+    } else {
+        $tdwidth = '16%';
+    }
     foreach($values as $idx => $val) {
         $percent = $max > 0 ? round(($val / $max) * 13,0) + 7 : 0;
         $indexgradient = 1 + (10/$respuesta->length) * ($nivel - 1);
@@ -837,7 +967,7 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
             $fill = '#fff';
         }
         // $tablahtml .= "<td><div class=\"circulo\"><div class=\"circulo-interno nivel$nivel-$respuesta->length $classinterno\" style=\"width:".$percent."px; height:".$percent."px;\"><div class=\"numero\">$val</div></div></div></td>";
-        $tablahtml .= "<td><svg width='40' height='40'><circle cx='20' cy='20' r='$percent' stroke='none' fill='$fill' />
+        $tablahtml .= "<td width='$tdwidth'><svg width='40' height='40'><circle cx='20' cy='20' r='$percent' stroke='none' fill='$fill' />
 <text font-size='12'
       fill='black'
       font-family='Verdana'
@@ -867,10 +997,10 @@ function uol_tabla_respuesta_rank($respuesta, $header = false) {
      $xaxis->set_stepsize(1);
      $chart->set_xaxis($xaxis);
      $width = $respuesta->length == 4 ? 400 : 450; */
-     $tablahtml = '&nbsp;';
+     // $tablahtml = '&nbsp;';
     $titulografico = trim(str_ireplace(array('a)','b)','c)','d)','e)', 'f)', 'g)', 'h)', 'i)', 'j)'), '', $respuesta->opcion));
-    $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico.'</td></tr>'.
-    '<tr class="trgrafico"><td class="tdgrafico">'. '</td><td>' .  $resumenhtml. '</td></tr></table>'; ### Se proyecta Chart
+    $charthtml = '<table width="100%"><tr><td class="titulografico hyphenate">'.$titulografico . '</td><td class="tddatos">' . $tablahtml .'</td></tr>'.
+    '<tr class="trgrafico"><td class="tdgrafico">'. '</td><td>' . $resumenhtml .  '</td></tr></table>'; ### Se proyecta Chart
     $charthtml = html_writer::div($charthtml,'encuesta');
     $stats = new stdClass();
     $stats->min = $promedio;

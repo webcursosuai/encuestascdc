@@ -114,8 +114,8 @@ if($qid > 0) {
     $questionnaires = array($questionnaire->id => $questionnaire);
 } elseif(count($mqid) > 0) {
     list($insql, $inparams) = $DB->get_in_or_equal($mqid);
-    $sql = "SELECT * FROM {bugtracker_issues} WHERE status $insql";
-    if(!$questionnaires = $DB->get_records_sql('SELECT * FROM {questionnaire} q WHERE id ' . $insql, $inparams)) {
+    $sql = "SELECT * FROM {questionnaire} q WHERE id $insql";
+    if(!$questionnaires = $DB->get_records_sql($sql, $inparams)) {
         print_error('Ids de encuestas inválidos');
     }
 } else {
@@ -135,25 +135,33 @@ $stats = encuestascdc_obtiene_estadisticas($questionnaires);
 $teachers = encuestascdc_obtiene_profesores($stats, $profesor1, $profesor2, $profesor3);
 list($statsbycourse_average, $statsbycourse_comments) = encuestascdc_obtiene_estadisticas_por_curso($stats);
 list($statsbysection_average, $statsbysection_questions, $statsbysection_comments) = encuestascdc_obtiene_estadisticas_por_seccion($stats);
+$stats['bycourse_average'] = $statsbycourse_average;
+$stats['bycourse_comments'] = $statsbycourse_comments;
+$stats['bysection_average'] = $statsbysection_average;
+$stats['bysection_comments'] = $statsbysection_comments;
+$stats['bysection_questions'] = $statsbysection_questions;
 if($tiporeporte === 'course') {
     // Se obtienen los gráficos y las secciones de la encuesta
     $coursestats = $statsbycourse_average[0];
     if($destinatario === 'teacher') {
         if(count($teachers) > 0) {
             encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, NULL, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, NULL, NULL, $coordinadora, $tiporeporte);
+            encuestascdc_dibujar_reporte($stats, $profesor1, NULL, NULL, $coordinadora, $tiporeporte, $destinatario);
         }
         if(count($teachers) > 1) {
             encuestascdc_dibuja_portada($questionnaire, $group, NULL, $profesor2, NULL, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, $profesor2, NULL, $coordinadora, $tiporeporte);
+            encuestascdc_dibujar_reporte($stats, NULL, $profesor2, NULL, $coordinadora, $tiporeporte, $destinatario);
         }
         if(count($teachers) > 2) {
             encuestascdc_dibuja_portada($questionnaire, $group, NULL, NULL, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-            encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, NULL, NULL, $profesor3, $coordinadora, $tiporeporte);
+            encuestascdc_dibujar_reporte($stats, NULL, NULL, $profesor3, $coordinadora, $tiporeporte, $destinatario);
         }
+    } else if($destinatario === 'program-director') {
+        encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, $profesor2, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
+        encuestascdc_dibujar_reporte($stats, $profesor1, $profesor2, $profesor3, $coordinadora, $tiporeporte, $destinatario);
     } else {
         encuestascdc_dibuja_portada($questionnaire, $group, $profesor1, $profesor2, $profesor3, $asignatura, $empresa, $coursestats['RATIO'], $programa, $destinatario, $coordinadora, $coursestats['ENROLLEDSTUDENTS']);
-        encuestascdc_dibujar_reporte($statsbysection_questions, $statsbysection_average, $statsbysection_comments, $profesor1, $profesor2, $profesor3, $coordinadora, $tiporeporte);
+        encuestascdc_dibujar_reporte($stats, $profesor1, $profesor2, $profesor3, $coordinadora, $tiporeporte, $destinatario);
     }
 } elseif($tiporeporte === 'program') {
     echo '<div style=" resize: both; "><pre>' . print_r($teachers, true) . '</pre></div>';

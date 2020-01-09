@@ -99,10 +99,14 @@ hr {
 }
 .encuesta {
     margin-right:20px;
+    border-bottom: 1px solid #ccc;
 }
 .tituloseccion {
 	font-size: 16px;
 	font-weight: bold;
+}
+.tabladistribucion > tbody > tr {
+    border-bottom: 1px solid #ccc;
 }
 .seccion {
     padding-top: 0.5cm;
@@ -110,9 +114,15 @@ hr {
 	border-bottom: 3px solid #EA4E1D;
 }
 .titulografico {
-	width: 80%;
+	width: 40%;
 	vertical-align: middle;
 	padding-right: 50px;
+}
+.datos {
+    width: 100%;
+}
+table.datos td {
+    text-align: center;
 }
 .resultados {
     display: flex;
@@ -120,6 +130,12 @@ hr {
 .row-questions {
     display: flex;
     flex-wrap: wrap;
+}
+.preguntas {
+    width: 100%;
+}
+.trgrafico {
+    display:none;
 }
 .estadisticas-seccion, .preguntas {
     display:flex;
